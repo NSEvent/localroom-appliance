@@ -522,6 +522,48 @@ a {
   color: var(--text-secondary);
 }
 
+/* Mic toggle (ui-spec §10): three visible states — off / recording / paused. */
+.mic-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mic-btn .mic-dot {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  margin-right: 0.45em;
+  background: var(--text-muted);
+}
+
+.mic-btn.recording {
+  color: var(--alert-high);
+  border-color: var(--alert-high);
+  background: var(--alert-high-bg);
+}
+
+.mic-btn.recording .mic-dot {
+  background: var(--alert-high-strong);
+  animation: livePulse 1.4s infinite;
+}
+
+.mic-btn.paused {
+  color: var(--warn);
+  border-color: var(--warn);
+  background: var(--warn-bg);
+}
+
+.mic-btn.paused .mic-dot {
+  background: var(--warn);
+}
+
+.mic-error {
+  font-size: 0.72rem;
+  color: var(--alert-high);
+}
+
 .agenda-strip {
   display: flex;
   align-items: center;

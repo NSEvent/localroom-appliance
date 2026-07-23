@@ -3,7 +3,36 @@
 
 import { useState } from 'react'
 import * as api from '../api'
+import { useMicCapture } from '../mic'
 import { useStore } from '../store'
+
+/** Per-window mic toggle, ui-spec §10 P0: three visible states —
+ * off (no stream held) / recording (red dot pulse) / paused. Host console
+ * only; capture is 5 s stop/restart MediaRecorder chunks (D22). */
+function MicToggle({ disabled }: { disabled: boolean }) {
+  const { sessionId } = useStore()
+  const { micState, micError, toggleMic, togglePause } = useMicCapture(sessionId)
+  return (
+    <div className="mic-controls" title={micError ?? undefined}>
+      <button
+        type="button"
+        className={`btn btn-outline mic-btn ${micState}`}
+        onClick={toggleMic}
+        disabled={disabled}
+        aria-pressed={micState !== 'off'}
+      >
+        <span className="mic-dot" aria-hidden />
+        {micState === 'off' ? 'Mic Off' : micState === 'recording' ? 'Recording' : 'Mic Paused'}
+      </button>
+      {micState !== 'off' && (
+        <button type="button" className="btn btn-outline mic-pause" onClick={togglePause}>
+          {micState === 'recording' ? 'Pause' : 'Resume'}
+        </button>
+      )}
+      {micError && <span className="mic-error">mic error</span>}
+    </div>
+  )
+}
 
 function RuntimeStatus() {
   const { health, healthError } = useStore()
@@ -80,6 +109,7 @@ export function TopBar() {
         ))}
       </nav>
       <RuntimeStatus />
+      <MicToggle disabled={status === 'ended'} />
       <button
         type="button"
         className="btn btn-outline"

@@ -114,6 +114,32 @@ export function postUtterances(
   })
 }
 
+// ---- audio (mic path, D22) ----
+
+/** POST one complete standalone audio blob to /audio (multipart). The
+ * transcribed utterance also arrives via the WS `utterance.created` path. */
+export async function postAudioChunk(
+  sessionId: string,
+  blob: Blob,
+  meta: { chunkIndex: number; startedAtMs: number; durationMs: number },
+): Promise<{ utterance: Utterance | null }> {
+  const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('wav') ? 'wav' : 'webm'
+  const form = new FormData()
+  form.append('file', blob, `chunk-${meta.chunkIndex}.${ext}`)
+  form.append('chunk_index', String(meta.chunkIndex))
+  form.append('started_at_ms', String(meta.startedAtMs))
+  form.append('duration_ms', String(meta.durationMs))
+  const res = await fetch(`${BASE}/sessions/${sessionId}/audio`, {
+    method: 'POST',
+    body: form, // browser sets the multipart boundary
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    throw new Error(`POST /audio → ${res.status} ${body.slice(0, 300)}`)
+  }
+  return (await res.json()) as { utterance: Utterance | null }
+}
+
 // ---- export / events / health ----
 
 export function exportUrl(sessionId: string): string {
