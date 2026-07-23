@@ -1,0 +1,93 @@
+// Top bar: wordmark, session identity + status chip, agenda strip, runtime
+// status panel (the judges' local-AI proof, D27), Closing Sweep.
+
+import { useState } from 'react'
+import * as api from '../api'
+import { useStore } from '../store'
+
+function RuntimeStatus() {
+  const { health, healthError } = useStore()
+  const degraded = health?.degraded ?? false
+  const asr = health?.asr
+  const llm = health?.llm
+  return (
+    <div className="runtime" title="Runtime status — everything runs on this machine">
+      {degraded && <span className="degraded">degraded — last good state kept</span>}
+      {healthError && <span className="degraded">status unavailable</span>}
+      {health && (
+        <>
+          <span>
+            {health.mode || 'mode ?'}
+            {asr?.model ? ` · ${asr.provider ? `${asr.provider} ` : ''}${asr.model}` : ''}
+          </span>
+          <span className="sep">|</span>
+          <span className="model">
+            {llm?.model ?? 'operator model ?'}
+            {llm?.tok_per_s ? ` · ${Math.round(llm.tok_per_s)} tok/s` : ''}
+          </span>
+          {health.gpu && (
+            <>
+              <span className="sep">|</span>
+              <span>{health.gpu}</span>
+            </>
+          )}
+        </>
+      )}
+      <span className="nocloud">No cloud APIs</span>
+    </div>
+  )
+}
+
+export function TopBar() {
+  const { session, sessionId } = useStore()
+  const [sweeping, setSweeping] = useState(false)
+  const meta = session?.session
+  const status = meta?.status ?? 'created'
+
+  const sweep = async () => {
+    setSweeping(true)
+    try {
+      await api.closingSweep(sessionId)
+    } catch (e) {
+      console.error('closing sweep failed', e)
+    } finally {
+      setSweeping(false)
+    }
+  }
+
+  return (
+    <header className="topbar">
+      <div className="wordmark">
+        <span className="meety">Meety</span> Local
+      </div>
+      <div>
+        <div className="session-title">{meta?.title ?? '…'}</div>
+        {meta?.goal && (
+          <div className="session-goal" title={meta.goal}>
+            Goal: {meta.goal}
+          </div>
+        )}
+      </div>
+      <span className={`status-chip ${status}`}>
+        <span className="dot" />
+        {status.toUpperCase()}
+      </span>
+      <nav className="agenda-strip" aria-label="Agenda">
+        {session?.agenda.map((a) => (
+          <span key={a.id} className={`agenda-chip ${a.status}`} title={`${a.title} (${a.status})`}>
+            {a.title}
+          </span>
+        ))}
+      </nav>
+      <RuntimeStatus />
+      <button
+        type="button"
+        className="btn btn-outline"
+        onClick={sweep}
+        disabled={sweeping || status === 'ended'}
+      >
+        {sweeping ? 'Sweeping…' : 'Closing Sweep'}
+      </button>
+    </header>
+  )
+}

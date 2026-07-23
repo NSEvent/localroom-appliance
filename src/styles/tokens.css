@@ -1,0 +1,95 @@
+/* Meety Local brand tokens — implemented fresh from docs/brand.md.
+   Dark theme is the default (demo theme, ui-spec §5); light theme is the
+   prepared fallback behind [data-theme="light"] — a variable swap, not a
+   feature. Alert red is never brand magenta. */
+
+:root {
+  /* type stacks (brand.md) */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', Consolas,
+    'DejaVu Sans Mono', monospace;
+
+  /* surfaces */
+  --surface-primary: #1a1a2e;
+  --surface-secondary: #16162a;
+  --surface-raised: #1e1e36;
+  --surface-inset: #232338;
+  --border: #2c2c44;
+  --border-subtle: #232338;
+
+  /* text */
+  --text-primary: #edeaf0;
+  --text-strong: #ffffff;
+  --text-secondary: #b9b6c6;
+  --text-muted: #8a8aa0;
+  --text-faint: #5a5a78;
+
+  /* brand — coral/magenta */
+  --brand: #e0679d;
+  --brand-hover: #d45a90;
+  --brand-pressed: #c8457e;
+  --brand-subtle: #3d2030;
+  --on-brand: #1a1a2e;
+
+  /* secondary — teal */
+  --secondary: #28a0b0;
+  --secondary-pressed: #1b7f8e;
+  --secondary-subtle: #1a3035;
+  --on-secondary: #1a1a2e;
+
+  /* semantic (never brand magenta for warnings) */
+  --alert-high: #f87171;
+  --alert-high-strong: #ef4444;
+  --alert-high-bg: #3a1620;
+  --warn: #fbbf24;
+  --warn-bg: #3a2e12;
+  --success: #4ade80;
+  --success-bg: #123324;
+  --success-border: #1e5238;
+  --info: #28a0b0;
+  --info-bg: #1a3035;
+
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --flash-bg: #3d2030;
+}
+
+:root[data-theme='light'] {
+  --surface-primary: #f4f1f4;
+  --surface-secondary: #ffffff;
+  --surface-raised: #faf8fa;
+  --surface-inset: #f0ecf0;
+  --border: #e3dee4;
+  --border-subtle: #f0ecf0;
+
+  --text-primary: #1a1a2e;
+  --text-strong: #1a1a2e;
+  --text-secondary: #4a4a68;
+  --text-muted: #8a8aa0;
+  --text-faint: #a5a1b0;
+
+  --brand: #c8457e;
+  --brand-hover: #b33d72;
+  --brand-pressed: #a03366;
+  --brand-subtle: #f5e0eb;
+  --on-brand: #ffffff;
+
+  --secondary: #1b7f8e;
+  --secondary-pressed: #14626e;
+  --secondary-subtle: #e3f0f2;
+  --on-secondary: #ffffff;
+
+  --alert-high: #dc2626;
+  --alert-high-strong: #b91c1c;
+  --alert-high-bg: #fef2f2;
+  --warn: #b45309;
+  --warn-bg: #fdf0d5;
+  --success: #15803d;
+  --success-bg: #e8f5ec;
+  --success-border: #bde5c8;
+  --info: #14626e;
+  --info-bg: #e3f0f2;
+
+  --shadow: 0 8px 32px rgba(26, 26, 46, 0.1);
+  --flash-bg: #f5e0eb;
+}
