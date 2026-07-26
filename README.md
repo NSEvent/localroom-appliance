@@ -6,12 +6,12 @@ LocalRoom WebRTC client as the browser build.
 
 The hackathon endpoint is intentionally hardcoded:
 
-`https://172.16.10.189:4174/?room=DELL-DEMO`
+`https://172.16.10.189:4174/?room=DELL-DEMO&autojoin=1`
 
 ## Local certificate
 
-The Dell endpoint uses Kevin's local `mkcert` CA. Before running on a physical
-iPhone, install that CA certificate on the device and enable full trust:
+The app accepts the development certificate only for the hardcoded Dell host.
+Safari and browser clients still need Kevin's local `mkcert` CA installed:
 
 1. AirDrop the `rootCA.pem` from `mkcert -CAROOT` to the iPhone.
 2. Install the downloaded profile in Settings.

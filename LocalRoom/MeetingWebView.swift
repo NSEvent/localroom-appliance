@@ -4,15 +4,18 @@ import WebKit
 
 enum LocalRoomEndpoint {
     // Hackathon LAN address. Replace with service discovery after the demo.
-    static let meetingURL = URL(string: "https://172.16.10.189:4174/?room=DELL-DEMO")!
+    static let meetingURL = URL(
+        string: "https://172.16.10.189:4174/?room=DELL-DEMO&autojoin=1&name=LocalRoom%20iOS"
+    )!
     static let allowedHost = "172.16.10.189"
 }
 
 struct MeetingWebView: UIViewRepresentable {
     let url: URL
+    @Binding var loadFailure: String?
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(parent: self)
     }
 
     func makeUIView(context: Context) -> WKWebView {
@@ -34,6 +37,51 @@ struct MeetingWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {}
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        private var parent: MeetingWebView
+
+        init(parent: MeetingWebView) {
+            self.parent = parent
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            didReceive challenge: URLAuthenticationChallenge,
+            completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+        ) {
+            guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+                  challenge.protectionSpace.host == LocalRoomEndpoint.allowedHost,
+                  let trust = challenge.protectionSpace.serverTrust else {
+                completionHandler(.performDefaultHandling, nil)
+                return
+            }
+            // Hackathon-only appliance pin: trust TLS only for the hardcoded Dell host.
+            completionHandler(.useCredential, URLCredential(trust: trust))
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            Task { @MainActor in
+                parent.loadFailure = nil
+            }
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            didFailProvisionalNavigation navigation: WKNavigation!,
+            withError error: Error
+        ) {
+            report(error)
+        }
+
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+            report(error)
+        }
+
+        private func report(_ error: Error) {
+            Task { @MainActor in
+                parent.loadFailure = error.localizedDescription
+            }
+        }
+
         func webView(
             _ webView: WKWebView,
             decidePolicyFor navigationAction: WKNavigationAction,

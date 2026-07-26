@@ -4,6 +4,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var permissionState: PermissionState = .checking
     @State private var webViewID = UUID()
+    @State private var loadFailure: String?
 
     var body: some View {
         ZStack {
@@ -15,12 +16,18 @@ struct ContentView: View {
                 ProgressView("Preparing private meeting…")
                     .tint(.lime)
             case .ready:
-                MeetingWebView(url: LocalRoomEndpoint.meetingURL)
+                MeetingWebView(url: LocalRoomEndpoint.meetingURL, loadFailure: $loadFailure)
                     .id(webViewID)
                     .ignoresSafeArea()
                     .safeAreaInset(edge: .top, spacing: 0) {
                         connectionBar
                     }
+                if let loadFailure {
+                    ConnectionFailureView(message: loadFailure) {
+                        self.loadFailure = nil
+                        webViewID = UUID()
+                    }
+                }
             case .denied:
                 PermissionView {
                     openSettings()
@@ -67,6 +74,33 @@ struct ContentView: View {
     private func openSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+}
+
+private struct ConnectionFailureView: View {
+    let message: String
+    let retry: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "network.slash")
+                .font(.system(size: 32))
+                .foregroundStyle(Color.lime)
+            Text("Dell Pro unavailable")
+                .font(.title2.bold())
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 340)
+            Button("Try Again", action: retry)
+                .buttonStyle(.borderedProminent)
+                .tint(Color.lime)
+                .foregroundStyle(.black)
+        }
+        .padding(30)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 20))
+        .padding(24)
     }
 }
 
