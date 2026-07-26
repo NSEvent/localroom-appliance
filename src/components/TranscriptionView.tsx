@@ -38,6 +38,26 @@ function ParticipantMic({ sourceId }: { sourceId: string }) {
   const { micState, micError, toggleMic, togglePause } =
     useMicCapture(sessionId, sourceId)
   const on = micState === 'recording'
+  // Browsers refuse getUserMedia outside a secure context. On plain http over
+  // the LAN the button would prompt for nothing and fail — better to disable
+  // it and name the fix than to let it look broken.
+  const secure = window.isSecureContext
+  if (!secure) {
+    return (
+      <>
+        <button type="button" className="rec-btn" disabled>
+          <span className="rec-dot" aria-hidden />
+          Mic unavailable
+        </button>
+        <span className="ctl-readout">
+          viewing only — this page is on http
+        </span>
+        <span className="ctl-error">
+          to speak, open the https:// address and accept the certificate once
+        </span>
+      </>
+    )
+  }
   return (
     <>
       <button
@@ -60,11 +80,6 @@ function ParticipantMic({ sourceId }: { sourceId: string }) {
           : on ? 'streaming to your channel' : 'paused'}
       </span>
       {micError && <span className="ctl-error">{micError}</span>}
-      {!window.isSecureContext && (
-        <span className="ctl-error">
-          not a secure origin — use the https:// address
-        </span>
-      )}
     </>
   )
 }
