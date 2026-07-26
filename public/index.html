@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c0f0e">
+  <meta name="description" content="Private, local-first meetings with speaker-attributed AI transcription.">
+  <title>LocalRoom — Private meetings, intelligent outcomes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="lobby" class="lobby">
+    <div class="lobby-brand"><span class="brand-mark">L</span><span>LocalRoom</span></div>
+    <main class="lobby-card">
+      <div class="eyebrow"><span class="pulse"></span> Dell Pro AI appliance ready</div>
+      <h1>Private meetings.<br><em>Intelligent outcomes.</em></h1>
+      <p>Zoom-grade collaboration with live, speaker-attributed transcription—processed entirely on your local Dell AI PC.</p>
+      <form id="join-form">
+        <label>Your name<input id="display-name" required maxlength="50" autocomplete="name" placeholder="e.g. Maya Chen"></label>
+        <label>Meeting code<input id="room-code" required maxlength="30" value="DELL-DEMO" spellcheck="false"></label>
+        <button type="submit">Join secure meeting <span>→</span></button>
+      </form>
+      <div class="trust-row"><span>● Local inference</span><span>● No cloud recording</span><span>● Encrypted media</span></div>
+    </main>
+    <div class="lobby-aside">
+      <div class="architecture">
+        <div class="node browser-node">BROWSER<span>isolated mic</span></div>
+        <div class="flow"><i></i><b>LAN ONLY</b><i></i></div>
+        <div class="node dell-node">DELL PRO<span>NVIDIA ASR</span></div>
+      </div>
+      <p>Your words stay in the room.</p>
+    </div>
+  </div>
+
+  <div id="meeting" class="meeting hidden">
+    <header>
+      <div class="meeting-brand"><span class="brand-mark">L</span><b>LocalRoom</b></div>
+      <div class="meeting-title"><b>Flight Systems Design Review</b><span id="meeting-code-label">DELL-DEMO</span></div>
+      <div class="meeting-status"><span id="clock">00:00</span><span class="secure-pill"><i></i> Local & secure</span></div>
+    </header>
+
+    <main class="meeting-main">
+      <section class="stage">
+        <div id="video-grid" class="video-grid"></div>
+        <div id="reaction-layer" class="reaction-layer"></div>
+        <div class="caption-overlay hidden" id="caption-overlay"><b id="caption-speaker"></b><span id="caption-text"></span></div>
+      </section>
+
+      <aside class="intelligence-panel">
+        <div class="panel-head">
+          <div><span>MEETING INTELLIGENCE</span><h2>Live transcript</h2></div>
+          <button id="close-panel" aria-label="Close transcript panel">×</button>
+        </div>
+        <div class="privacy-proof">
+          <div class="proof-icon">⌁</div>
+          <div><b>Processing on Dell Pro</b><span id="model-label">NVIDIA Parakeet · checking…</span></div>
+          <span class="live-tag">LIVE</span>
+        </div>
+        <div id="transcript" class="transcript">
+          <div class="empty-state"><span>⌁</span><b>Listening locally</b><p>Speaker-attributed notes will appear here. Nothing leaves this network.</p></div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-title"><span>✦</span> AI MEETING BRIEF <b>LOCAL</b></div>
+          <p id="meeting-brief">Waiting for the conversation to begin. Key decisions and action items will collect here.</p>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div class="footer-left"><span id="participant-count">1 participant</span><span class="network-quality"><i></i> Excellent</span></div>
+      <div class="controls">
+        <button id="mic-button" class="control" aria-label="Mute microphone"><span>♩</span><small>Mute</small></button>
+        <button id="camera-button" class="control" aria-label="Turn camera off"><span>▣</span><small>Camera</small></button>
+        <button id="share-button" class="control" aria-label="Share meeting link"><span>↥</span><small>Invite</small></button>
+        <button id="reaction-button" class="control" aria-label="Applaud"><span>♧</span><small>React</small></button>
+        <button id="transcript-button" class="control active" aria-label="Toggle transcript"><span>≡</span><small>Transcript</small></button>
+        <button id="leave-button" class="leave">Leave</button>
+      </div>
+      <div class="footer-right"><span id="asr-dot"></span><b id="asr-state">Connecting to local AI</b></div>
+    </footer>
+  </div>
+  <div id="toast" class="toast"></div>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
