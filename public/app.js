@@ -58,7 +58,7 @@ function handleMessage(message) {
   } else if (message.type === "agent-answer") {
     showAgentAnswer(message);
   } else if (message.type === "agent-error") {
-    setAgentState("", "Listening");
+    setAgentState("", "Listening for Wagyu");
     toast(`Agent unavailable: ${message.message}`);
   } else if (message.type === "card-conflict") {
     toast(message.reason === "already-voted" ? "Your vote is already counted." : "Another participant resolved this first.");
@@ -173,14 +173,14 @@ function showAgentAnswer(answer) {
     const audio = new Audio(answer.audioURL);
     audio.addEventListener("ended", () => {
       state.media.transcriptionActive = true;
-      setAgentState("", "Listening");
+      setAgentState("", "Listening for Wagyu");
     });
     audio.play().catch(() => {
       state.media.transcriptionActive = true;
-      setAgentState("", "Listening");
+      setAgentState("", "Listening for Wagyu");
     });
   } else {
-    setTimeout(() => setAgentState("", "Listening"), 2600);
+    setTimeout(() => setAgentState("", "Listening for Wagyu"), 2600);
   }
 }
 
@@ -195,7 +195,7 @@ async function askAgent(question = $("#agent-question").value.trim()) {
     });
     if (!response.ok) throw new Error((await response.json()).error);
   } catch (error) {
-    setAgentState("", "Listening");
+    setAgentState("", "Listening for Wagyu");
     toast(`Agent unavailable: ${error.message}`);
   }
 }

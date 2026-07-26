@@ -7,7 +7,7 @@ import { spawn } from "node:child_process";
 import { WebSocketServer } from "ws";
 import express from "express";
 import { selectSpeakerCandidate } from "./audio-arbitration.js";
-import { answerFromMemory, demoMemory, RoomIntelligence } from "./localroom-core.js";
+import { answerFromMemory, demoMemory, extractWakePrompt, RoomIntelligence } from "./localroom-core.js";
 import { AuditTrail, LocalModelService, LocalSpeechService } from "./local-services.js";
 import { WorkspaceActions } from "./workspace-actions.js";
 import { corpusStats } from "./corpus-index.js";
@@ -272,8 +272,8 @@ function publishCaption(roomId, caption) {
   const proposals = intelligence.addCaption(roomId, caption);
   broadcast(roomId, caption);
   if (proposals.length) broadcastRoom(roomId);
-  if (/^\s*(?:local ?room|room agent)[,\s]/i.test(caption.text)) {
-    const question = caption.text.replace(/^\s*(?:local ?room|room agent)[,\s]*/i, "");
+  const question = extractWakePrompt(caption.text);
+  if (question) {
     answerAgent(roomId, question, caption.name).catch((error) =>
       broadcast(roomId, { type: "agent-error", message: error.message }));
   }

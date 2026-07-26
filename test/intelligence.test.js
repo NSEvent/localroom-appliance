@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { answerFromMemory, authorizeShare, RoomIntelligence } from "../localroom-core.js";
+import {
+  answerFromMemory, authorizeShare, extractWakePrompt, RoomIntelligence,
+} from "../localroom-core.js";
 
 function harness() {
   let tick = 0;
@@ -126,6 +128,22 @@ test("institutional memory answers are grounded with wiki-style citations", () =
   const result = answerFromMemory("Why did we reject the previous cancellation design?");
   assert.match(result.answer, /multi-page cancellation flow/);
   assert.deepEqual(result.citations, ["[[cancellation-review-2026-07-19]]", "[[project-iliad]]"]);
+});
+
+test("Wagyu wake word tolerates likely ASR spellings", () => {
+  assert.equal(
+    extractWakePrompt("Wagyu, can you remind me what Project Iliad is?"),
+    "can you remind me what Project Iliad is?");
+  assert.equal(
+    extractWakePrompt("Hey wag you — who owns the revised flow?"),
+    "who owns the revised flow?");
+  assert.equal(extractWakePrompt("Can you remind me what Project Iliad is?"), null);
+});
+
+test("Project Iliad identity question has a deterministic cited answer", () => {
+  const result = answerFromMemory("Can you remind me what Project Iliad is?");
+  assert.match(result.answer, /historical effort to simplify Prime cancellation/);
+  assert.deepEqual(result.citations, ["[[project-iliad]]"]);
 });
 
 test("post-meeting handoff contains actions and monitored commitments", () => {

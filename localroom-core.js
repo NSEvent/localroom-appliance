@@ -332,6 +332,12 @@ export const demoMemory = [
 
 export function answerFromMemory(question) {
   const normalized = question.toLowerCase();
+  if (normalized.includes("project iliad") && /\b(?:what|explain|describe|tell me)\b/.test(normalized)) {
+    return {
+      answer: "Project Iliad is Rainforest's historical effort to simplify Prime cancellation while measuring retention impact. This demo grounds that history in public FTC filings; its restricted internal artifacts are synthetic.",
+      citations: ["[[project-iliad]]"],
+    };
+  }
   if (normalized.includes("why") && (normalized.includes("previous") || normalized.includes("reject"))) {
     return {
       answer: "The prior multi-page cancellation flow was rejected because it obscured the exit path and conflicted with Legal's explicit-consent requirement. The room requested a two-step alternative.",
@@ -351,6 +357,12 @@ export function answerFromMemory(question) {
     };
   }
   return null;
+}
+
+export function extractWakePrompt(text) {
+  const match = String(text).match(
+    /^\s*(?:hey[\s,]+)?(?:wagyu|wag[\s-]+you)(?:[\s,:—-]+)(.+?)\s*$/i);
+  return match?.[1]?.trim() || null;
 }
 
 function parseCommitment(text, speaker) {
