@@ -41,6 +41,8 @@ export interface Utterance {
   /** Which stream carried this audio — identity without diarization. */
   source_id?: string | null
   source_kind?: string | null
+  /** Wall-clock instant, UTC ISO-8601. ts_* are session-relative only. */
+  at_utc?: string
 }
 
 export interface AudioSource {

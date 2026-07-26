@@ -193,7 +193,12 @@ export function TranscriptionView() {
         ) : (
           utterances.map((u) => (
             <div key={u.id} className="tv-line">
-              <span className="tv-ts">{mmss(u.ts_start)}</span>
+              <span
+                className="tv-ts"
+                title={u.at_utc ? `${u.at_utc} (UTC)` : undefined}
+              >
+                {mmss(u.ts_start)}
+              </span>
               <span
                 className={`tv-who ${u.source_kind === 'room' ? 'room' : 'person'}`}
                 title={u.source_kind === 'room'
