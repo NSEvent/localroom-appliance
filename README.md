@@ -5,6 +5,9 @@ transcribes each participant separately, proposes synchronized decisions and com
 conducts collective polls, answers from institutional memory, governs sensitive actions,
 and persists follow-up work after participants leave.
 
+The native iPhone/iPad client lives in a separate repository:
+**[localroom-ios-app](https://github.com/NSEvent/localroom-ios-app)**.
+
 ## Demo endpoint
 
 `https://172.16.10.189:4174/?room=DELL-DEMO`
@@ -46,6 +49,22 @@ is a simulation based on public court records.
 Persistent app data lives under `data/`: the FTC source corpus, metadata-only audit JSONL,
 generated speech, and workspace handoff artifacts.
 
+## Source map
+
+Orientation for anyone (or any agent) reading this repository cold:
+
+| File | Responsibility |
+|---|---|
+| `server.js` | HTTP/HTTPS server, WebRTC signaling, room state, ASR/LLM/TTS fan-out |
+| `localroom-core.js` | `RoomIntelligence` (decisions, commitments, polls, cards), `authorizeShare` classification policy, wake-word parsing, memory answering |
+| `local-services.js` | `LocalModelService` (Qwen/Nemotron), `LocalSpeechService` (Parakeet/Kokoro), `AuditTrail` append-only JSONL |
+| `audio-arbitration.js` | Speaker arbitration by gain, so co-located mics don't double-transcribe |
+| `workspace-actions.js` | Post-meeting artifacts: brief, task JSON, email draft, calendar invite |
+| `corpus-index.js` | Institutional-memory retrieval over the local corpus |
+| `public/app.js` | Client UI, card rendering, vote handling |
+| `public/media.js` | getUserMedia, peer connections, per-participant 16 kHz capture |
+| `test/` | Node test-runner suites for the four modules above |
+
 ## Local gate
 
 ```bash
@@ -80,3 +99,8 @@ not mocked.
 Say **“Pork Chop, …”** to address the room agent hands-free. The wake-word parser also accepts
 the common ASR renderings “porkchop” and “pork shop”; ordinary conversation does not trigger
 an agent reply.
+
+## License
+
+Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md)—read,
+build, and run it freely for noncommercial purposes.
