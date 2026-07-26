@@ -233,6 +233,20 @@ export async function registerSource(
   })
 }
 
+/** Name a stream. Retroactive: every utterance already carrying this
+ * source_id is relabelled, so a participant can stream first and be
+ * identified afterwards. */
+export async function renameSource(
+  sessionId: string, sourceId: string, name: string,
+): Promise<AudioSource & { relabelled: number }> {
+  return request<AudioSource & { relabelled: number }>(
+    `/sessions/${sessionId}/sources/${sourceId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
+}
+
 /** The one live session, or null. One meeting at a time per appliance. */
 export async function getCurrentSession(): Promise<{ session: { id: string } | null }> {
   return request<{ session: { id: string } | null }>('/sessions/current')

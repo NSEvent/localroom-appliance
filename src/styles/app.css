@@ -1564,3 +1564,39 @@ a {
   border-radius: 8px; padding: .6rem .7rem;
 }
 .join-error { margin-top: .9rem; font-size: .85rem; color: #f85149; }
+
+/* ---- participant strip --------------------------------------------------- */
+.src-bar {
+  display: flex; align-items: center; gap: .45rem; flex-wrap: wrap;
+  flex: 0 0 auto; font-size: .84rem;
+}
+.src-label { color: var(--fg-dim, #7d8590); font-size: .78rem; margin-right: .15rem; }
+.src-chip {
+  display: inline-flex; align-items: center; gap: .4rem;
+  padding: .2rem .55rem; border-radius: 999px;
+  border: 1px solid var(--border, #30363d);
+}
+.src-chip .src-dot {
+  width: .45rem; height: .45rem; border-radius: 50%;
+  background: var(--fg-dim, #7d8590);
+}
+.src-chip.live .src-dot { background: #2ea043; }
+.src-chip.browser { border-color: rgba(88,166,255,.4); }
+.src-chip.room { opacity: .85; }
+.src-name {
+  background: none; border: 0; padding: 0; font: inherit; color: inherit;
+  cursor: pointer; border-bottom: 1px dashed transparent;
+}
+.src-name:hover { border-bottom-color: var(--fg-dim, #7d8590); }
+.src-me { color: var(--fg-dim, #7d8590); font-size: .78rem; }
+.src-input {
+  font: inherit; font-size: .84rem; width: 7.5rem; padding: 0 .2rem;
+  background: transparent; color: inherit;
+  border: 0; border-bottom: 1px solid #58a6ff;
+}
+.src-count {
+  font-size: .72rem; color: var(--fg-dim, #7d8590);
+  font-variant-numeric: tabular-nums;
+}
+.src-buf { color: #d29922; }
+.src-note { font-size: .72rem; color: #2ea043; }

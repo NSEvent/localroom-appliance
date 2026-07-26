@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from '../api'
+import { SourcesBar } from './SourcesBar'
 import { useStore } from '../store'
 import { mmss } from '../time'
 import type { AudioDevice, AudioLevel, CaptureStatus } from '../types'
@@ -179,6 +180,7 @@ export function TranscriptionView() {
   return (
     <div className="tv">
       <ControlRow />
+      <SourcesBar />
 
       <div className="tv-body" ref={bodyRef} onScroll={onScroll}>
         {count === 0 ? (
