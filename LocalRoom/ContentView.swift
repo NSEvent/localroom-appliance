@@ -18,7 +18,7 @@ struct ContentView: View {
             case .ready:
                 MeetingWebView(url: LocalRoomEndpoint.meetingURL, loadFailure: $loadFailure)
                     .id(webViewID)
-                    .ignoresSafeArea()
+                    .ignoresSafeArea(.container, edges: .horizontal)
                     .safeAreaInset(edge: .top, spacing: 0) {
                         connectionBar
                     }
