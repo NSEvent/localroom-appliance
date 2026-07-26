@@ -26,6 +26,10 @@ function alertNum(id: string): number {
 
 function AlertCard({ alert, sessionId }: { alert: Alert; sessionId: string }) {
   const [confirming, setConfirming] = useState(false)
+  // Agent-sourced alerts get brand magenta; severity keeps red/amber/blue, so
+  // provenance and urgency read as two independent axes (tokens.css: alert red
+  // is never brand magenta). Judge-legible from across the table.
+  const isAgent = alert.source === 'hermes'
 
   const dismiss = () => {
     if (!confirming) {
@@ -40,19 +44,24 @@ function AlertCard({ alert, sessionId }: { alert: Alert; sessionId: string }) {
   const jump = () => alert.related_id && emit('jump-entity', alert.related_id)
 
   return (
-    <div className={`alert-card ${alert.severity}`}>
+    <div className={`alert-card ${alert.severity}${isAgent ? ' agent' : ''}`}>
       <div className="alert-head">
         <span aria-hidden>{SEVERITY_ICON[alert.severity]}</span>
         <span>
           {alert.severity.toUpperCase()} · {alert.type.replace(/_/g, ' ').toUpperCase()}
         </span>
+        {isAgent && (
+          <span className="agent-badge" title="Raised by the Hermes agent, not a deterministic rule">
+            <span aria-hidden>◆</span> HERMES
+          </span>
+        )}
       </div>
       <div className="alert-text" onClick={jump} title={alert.related_id ? `Jump to ${alert.related_id}` : undefined}>
         {alert.text}
       </div>
       {alert.suggested_prompt && <div className="alert-prompt">“{alert.suggested_prompt}”</div>}
       <div className="alert-foot">
-        <span className="alert-src">{alert.source}</span>
+        <span className={`alert-src${isAgent ? ' agent' : ''}`}>{alert.source}</span>
         {alert.related_id && (
           <button type="button" className="chip brand" onClick={jump}>
             Jump to card →

@@ -856,6 +856,36 @@ a {
   background: var(--info-bg);
 }
 
+/* Agent (Hermes) provenance — brand magenta, an axis independent of severity.
+   Must come after the severity rules to win the border colour. Never used for
+   urgency; alert red stays the only "this is bad" signal (tokens.css). */
+.alert-card.agent {
+  border-color: var(--brand);
+  border-style: dashed;
+  border-left: 8px solid var(--brand);
+}
+
+.agent-badge {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--on-brand);
+  background: var(--brand);
+  padding: 0.15em 0.55em;
+  border-radius: 999px;
+}
+
+.alert-src.agent {
+  color: var(--brand);
+  background: var(--brand-subtle);
+  font-weight: 700;
+}
+
 .alert-head {
   display: flex;
   align-items: center;

@@ -92,9 +92,15 @@ export type AlertType =
   | 'open_question_at_close'
   | 'unresolved_decision'
   | 'off_agenda'
+  | 'participation_balance'
 
 export type AlertSeverity = 'info' | 'warn' | 'high'
 export type AlertStatus = 'active' | 'resolved' | 'dismissed'
+
+/** Who produced the alert. `rule` is deterministic backend derivation,
+ *  `operator` the LLM tick, `hermes` the local agent. Set by the backend
+ *  from the endpoint the delta arrived on — never self-declared. */
+export type AlertSource = 'rule' | 'operator' | 'hermes'
 
 export interface Alert {
   id: string
@@ -103,7 +109,7 @@ export interface Alert {
   text: string
   suggested_prompt: string | null
   related_id: string | null
-  source: 'rule' | 'operator'
+  source: AlertSource
   dedupe_key: string
   status: AlertStatus
 }
