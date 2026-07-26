@@ -192,6 +192,14 @@ export function TranscriptionView() {
           utterances.map((u) => (
             <div key={u.id} className="tv-line">
               <span className="tv-ts">{mmss(u.ts_start)}</span>
+              <span
+                className={`tv-who ${u.source_kind === 'room' ? 'room' : 'person'}`}
+                title={u.source_kind === 'room'
+                  ? 'room mic — not attributed to one person'
+                  : 'from this participant\u2019s own device'}
+              >
+                {u.speaker}
+              </span>
               <span className="tv-text">{u.text}</span>
             </div>
           ))

@@ -6,6 +6,7 @@
 import type {
   AudioDevices,
   AudioLevel,
+  AudioSource,
   CaptureStatus,
   Health,
   SessionState,
@@ -128,7 +129,13 @@ export function postUtterances(
 export async function postAudioChunk(
   sessionId: string,
   blob: Blob,
-  meta: { chunkIndex: number; startedAtMs: number; durationMs: number },
+  meta: {
+    chunkIndex: number
+    startedAtMs: number
+    durationMs: number
+    /** Which participant stream this chunk came from — the speaker label. */
+    sourceId?: string | null
+  },
 ): Promise<{ utterance: Utterance | null }> {
   const ext = blob.type.includes('mp4') ? 'mp4' : blob.type.includes('wav') ? 'wav' : 'webm'
   const form = new FormData()
@@ -136,6 +143,7 @@ export async function postAudioChunk(
   form.append('chunk_index', String(meta.chunkIndex))
   form.append('started_at_ms', String(meta.startedAtMs))
   form.append('duration_ms', String(meta.durationMs))
+  if (meta.sourceId) form.append('source_id', meta.sourceId)
   const res = await fetch(`${BASE}/sessions/${sessionId}/audio`, {
     method: 'POST',
     body: form, // browser sets the multipart boundary
@@ -207,6 +215,22 @@ export async function getHealth(): Promise<Health> {
 /** Capture devices on the APPLIANCE, not the browser host. */
 export async function getAudioDevices(): Promise<AudioDevices> {
   return request<AudioDevices>('/audio/devices')
+}
+
+/** Participant streams. Each browser stream is one person, so the name
+ * registered here labels every utterance that arrives on it. */
+export async function listSources(sessionId: string): Promise<{ sources: AudioSource[] }> {
+  return request<{ sources: AudioSource[] }>(`/sessions/${sessionId}/sources`)
+}
+
+export async function registerSource(
+  sessionId: string, name: string, kind = 'browser',
+): Promise<AudioSource> {
+  return request<AudioSource>(`/sessions/${sessionId}/sources`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, kind }),
+  })
 }
 
 /** The one live session, or null. One meeting at a time per appliance. */

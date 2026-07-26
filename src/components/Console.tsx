@@ -29,7 +29,7 @@ export function Console() {
           reconnecting… panels keep the last good state
         </div>
       )}
-      <TopBar />
+      {tab === 'console' && <TopBar />}
       {loadError && !session && !loading ? (
         <div className="centered-note">
           Could not load this session ({loadError}). Retrying over the live connection…

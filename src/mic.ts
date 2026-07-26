@@ -21,7 +21,7 @@ function pickMimeType(): string | undefined {
   return candidates.find((t) => MediaRecorder.isTypeSupported(t))
 }
 
-export function useMicCapture(sessionId: string): {
+export function useMicCapture(sessionId: string, sourceId?: string | null): {
   micState: MicState
   micError: string | null
   /** off → recording; recording/paused → off (releases the stream). */
@@ -78,6 +78,7 @@ export function useMicCapture(sessionId: string): {
       const blob = new Blob(parts, { type: rec.mimeType || mimeType })
       if (blob.size > 0) {
         postAudioChunk(sessionId, blob, {
+          sourceId,
           chunkIndex: chunkIndexRef.current++,
           startedAtMs: chunkStart - captureStartRef.current,
           durationMs,

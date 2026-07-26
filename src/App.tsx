@@ -4,9 +4,9 @@
 //   /session/{id}?presenter=1 → presenter controls (never on the projector)
 
 import { useEffect, useState } from 'react'
-import * as api from './api'
 import { Console } from './components/Console'
 import { HostSetup } from './components/HostSetup'
+import { JoinPage } from './components/JoinPage'
 import { PresenterControls } from './components/PresenterControls'
 import { SessionProvider } from './store'
 
@@ -26,14 +26,23 @@ function useTheme(): [Theme, (t: Theme) => void] {
 interface Route {
   name: 'setup' | 'console' | 'presenter' | 'unknown'
   sessionId?: string
+  /** Present when a participant joined from their own device. */
+  sourceId?: string | null
 }
 
 function parseRoute(pathname: string, search: string): Route {
-  if (pathname === '/' || pathname === '') return { name: 'setup' }
+  if (pathname === '/' || pathname === '' || pathname === '/host') {
+    return { name: 'setup' }
+  }
   const m = pathname.match(/^\/session\/([^/]+)\/?$/)
   if (m) {
-    const presenter = new URLSearchParams(search).get('presenter') === '1'
-    return { name: presenter ? 'presenter' : 'console', sessionId: m[1] }
+    const q = new URLSearchParams(search)
+    const presenter = q.get('presenter') === '1'
+    return {
+      name: presenter ? 'presenter' : 'console',
+      sessionId: m[1],
+      sourceId: q.get('source'),
+    }
   }
   return { name: 'unknown' }
 }
@@ -56,32 +65,17 @@ export default function App() {
     setRoute(parseRoute(pathname, search ? `?${search}` : ''))
   }
 
-  // One session at a time (appliance rule): if a meeting is already live,
-  // landing on "/" joins it rather than offering to start a rival one. The
-  // server enforces this too — this is just so the screen matches reality.
-  useEffect(() => {
-    if (route.name !== 'setup') return
-    let cancelled = false
-    void (async () => {
-      try {
-        const { session } = await api.getCurrentSession()
-        if (!cancelled && session) navigate(`/session/${session.id}`)
-      } catch {
-        /* no server yet — stay on setup, it renders its own error */
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route.name])
-
   switch (route.name) {
     case 'setup':
-      return <HostSetup navigate={navigate} theme={theme} setTheme={setTheme} />
+      // Anyone opening the box's address lands here: it shows whether a
+      // meeting is live and lets them claim a name before streaming. The
+      // host's own setup screen is at /host.
+      return location.pathname === '/host'
+        ? <HostSetup navigate={navigate} theme={theme} setTheme={setTheme} />
+        : <JoinPage navigate={navigate} />
     case 'console':
       return (
-        <SessionProvider sessionId={route.sessionId!}>
+        <SessionProvider sessionId={route.sessionId!} sourceId={route.sourceId}>
           <div className="app">
             <Console />
           </div>

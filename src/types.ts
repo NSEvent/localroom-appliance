@@ -38,6 +38,19 @@ export interface Utterance {
   ts_end: number
   is_final: boolean
   source: UtteranceSource
+  /** Which stream carried this audio — identity without diarization. */
+  source_id?: string | null
+  source_kind?: string | null
+}
+
+export interface AudioSource {
+  id: string
+  name: string
+  kind: string          // "room" | "browser"
+  created_at: number
+  last_seen: number | null
+  utterances: number
+  buffering: boolean
 }
 
 export type DecisionStatus = 'proposed' | 'decided' | 'superseded'

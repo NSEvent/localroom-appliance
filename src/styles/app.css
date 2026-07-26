@@ -1524,3 +1524,43 @@ a {
 .jump-latest { margin-left: auto; font-size: .78rem; padding: .2rem .55rem; }
 
 .audio-error { font-size: .82rem; color: #f85149; margin: .4rem 0; }
+
+/* ---- speaker attribution in the transcript ------------------------------ */
+.tv-who {
+  flex: 0 0 auto; min-width: 5rem; font-size: .82rem; font-weight: 600;
+  padding: .1rem .45rem; border-radius: 4px;
+}
+.tv-who.person { color: #58a6ff; background: rgba(88,166,255,.1); }
+.tv-who.room { color: var(--fg-dim, #7d8590); background: rgba(127,127,127,.1); font-weight: 500; }
+
+/* ---- join page ---------------------------------------------------------- */
+.join { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; }
+.join-card {
+  width: min(26rem, 100%); border: 1px solid var(--border, #30363d);
+  border-radius: 12px; padding: 1.8rem 1.6rem;
+}
+.join-card h1 { margin: 0; font-size: 1.7rem; letter-spacing: -.01em; }
+.join-sub { margin: .3rem 0 1.6rem; color: var(--fg-dim, #7d8590); font-size: .9rem; }
+.join-status { font-size: .95rem; color: var(--fg-dim, #7d8590); margin: 0 0 1.2rem; }
+.join-status.live { color: inherit; display: flex; align-items: center; gap: .5rem; }
+.join-status .dot { width: .55rem; height: .55rem; border-radius: 50%; display: inline-block; }
+.join-status .dot.good { background: #2ea043; }
+.join-status .dim { font-size: .85rem; opacity: .8; }
+.join-card label { display: block; font-size: .85rem; margin-bottom: .35rem; }
+.join-card input {
+  width: 100%; padding: .6rem .7rem; font: inherit; font-size: 1rem;
+  border-radius: 8px; border: 1px solid var(--border, #30363d);
+  background: transparent; color: inherit;
+}
+.join-hint { font-size: .8rem; color: var(--fg-dim, #7d8590); margin: .5rem 0 1.2rem; line-height: 1.5; }
+.join-btn {
+  width: 100%; padding: .7rem 1rem; font: inherit; font-size: 1rem; font-weight: 600;
+  border-radius: 8px; border: 0; cursor: pointer; background: #1f6feb; color: #fff;
+}
+.join-btn:disabled { opacity: .45; cursor: default; }
+.join-warn {
+  margin-top: 1rem; font-size: .82rem; line-height: 1.5;
+  color: #d29922; border: 1px solid rgba(210,153,34,.35);
+  border-radius: 8px; padding: .6rem .7rem;
+}
+.join-error { margin-top: .9rem; font-size: .85rem; color: #f85149; }
