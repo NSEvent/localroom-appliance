@@ -2,7 +2,7 @@
 // top bar / transcript | meeting record | alerts + nudge / bottom strip.
 // When session.status === "ended" it reflows into the end-meeting review.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../store'
 import { AlertsPanel, NudgeBanner } from './AlertsPanel'
 import { BottomStrip } from './BottomStrip'
@@ -15,7 +15,30 @@ import { TranscriptionView } from './TranscriptionView'
 type Tab = 'console' | 'transcription'
 
 export function Console() {
-  const { session, loadError, loading, wsStatus } = useStore()
+  const { session, loadError, loading, wsStatus, sessionId } = useStore()
+
+  // Sessions live in memory, so an API restart leaves open tabs pointed at a
+  // session that no longer exists — 404 on every poll and 403 on the socket,
+  // forever. Send them back to the join page instead of letting them sit on a
+  // dead screen retrying. Same for a meeting that has ended.
+  useEffect(() => {
+    if (!loadError || loading) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await fetch(`/api/sessions/${sessionId}`)
+        if (!cancelled && res.status === 404) {
+          history.replaceState(null, '', '/')
+          location.reload()
+        }
+      } catch {
+        /* network blip — the poll will try again */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [loadError, loading, sessionId])
   const ended = session?.session.status === 'ended'
   // Simplified default (audio settings + live transcript). The full demo
   // console is one tab away and unchanged — this is a default, not a

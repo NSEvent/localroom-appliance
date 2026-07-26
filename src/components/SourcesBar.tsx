@@ -53,8 +53,11 @@ function Chip({ src, sessionId, isMe, onRenamed }: {
     }
   }
 
+  // last_seen updates on every CHUNK, not on every finished sentence.
+  // Stitching can hold text for up to 12s, so keying the dot off utterances
+  // would leave a talking participant looking idle.
   const live = src.last_seen !== null &&
-    Date.now() / 1000 - src.last_seen < 30
+    Date.now() / 1000 - src.last_seen < 12
 
   return (
     <span className={`src-chip ${src.kind} ${live ? 'live' : ''}`}>
