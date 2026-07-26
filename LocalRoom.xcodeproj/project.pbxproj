@@ -265,6 +265,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LocalRoom;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LocalRoom uses the camera so other meeting participants can see you.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "LocalRoom connects to your Dell Pro on the local network for meetings and transcription.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LocalRoom uses the microphone for the call and private local transcription on your Dell Pro.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +289,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LocalRoom;
 				INFOPLIST_KEY_NSCameraUsageDescription = "LocalRoom uses the camera so other meeting participants can see you.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "LocalRoom connects to your Dell Pro on the local network for meetings and transcription.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LocalRoom uses the microphone for the call and private local transcription on your Dell Pro.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
