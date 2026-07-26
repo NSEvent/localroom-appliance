@@ -1,14 +1,15 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Dev convenience only: proxy /api (REST + WS) to the local meety-api.
-// Production is same-origin — meety-api serves dist/ directly (D1, no CORS).
+// Dev convenience only: proxy REST + WebSockets to the LocalRoom appliance.
+// Production is same-origin—LocalRoom serves the committed dist directly.
 export default defineConfig({
+  base: '/console/',
   plugins: [react()],
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: 'http://127.0.0.1:4173',
         ws: true,
       },
     },

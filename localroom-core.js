@@ -1,4 +1,12 @@
 import crypto from "node:crypto";
+import {
+  addRecordParticipant,
+  applyCardToRecord,
+  createMeetingRecord,
+  endRecord,
+  ingestRecordCaption,
+  removeRecordParticipant,
+} from "./meeting-record.js";
 
 const RESTRICTED = new Set(["CONFIDENTIAL", "CUI", "CUI // EXPORT CONTROLLED", "M&A CLEAN TEAM ONLY"]);
 const EXTERNAL_DOMAINS = new Set(["outside-vendor.com", "gmail.com", "proton.me"]);
@@ -12,9 +20,10 @@ export class RoomIntelligence {
 
   room(roomId) {
     if (!this.rooms.has(roomId)) {
+      const title = "Project Iliad Cancellation Review";
       this.rooms.set(roomId, {
         id: roomId,
-        title: "Project Iliad Cancellation Review",
+        title,
         organization: "Rainforest",
         participants: new Map(),
         captions: [],
@@ -25,6 +34,7 @@ export class RoomIntelligence {
         voice: "af_heart",
         timeline: seededTimeline(this.now),
         transcriptVersion: 0,
+        record: createMeetingRecord(roomId, title, this.now()),
       });
     }
     return this.rooms.get(roomId);
@@ -41,17 +51,22 @@ export class RoomIntelligence {
   }
 
   addParticipant(roomId, participant) {
-    this.room(roomId).participants.set(participant.id, participant);
+    const room = this.room(roomId);
+    room.participants.set(participant.id, participant);
+    addRecordParticipant(room.record, participant);
   }
 
   removeParticipant(roomId, participantId) {
-    this.room(roomId).participants.delete(participantId);
+    const room = this.room(roomId);
+    room.participants.delete(participantId);
+    removeRecordParticipant(room.record, participantId);
   }
 
   addCaption(roomId, caption) {
     const room = this.room(roomId);
     room.captions.push(caption);
     room.transcriptVersion += 1;
+    ingestRecordCaption(room.record, caption);
     if (caption.source === "agent") return [];
     return this.detectCards(room, caption);
   }
@@ -151,6 +166,7 @@ export class RoomIntelligence {
     card.resolvedBy = { id: actorId, name: actorName };
     card.resolution = action;
     room.activeCardId = null;
+    applyCardToRecord(room.record, card, action, actorName);
 
     if (card.type === "commitment" && ["accept", "assign-me"].includes(action)) {
       const metadata = { ...card.metadata };
@@ -262,6 +278,7 @@ export class RoomIntelligence {
 
   endMeeting(roomId, actorName) {
     const room = this.room(roomId);
+    endRecord(room.record);
     const decisions = room.cards.filter((card) =>
       card.type === "decision" && card.resolution === "confirm");
     const brief = {

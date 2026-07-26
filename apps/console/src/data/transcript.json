@@ -1,144 +1,39 @@
 {
   "utterances": [
     {
-      "id": "utt_001",
-      "speaker": "Alex",
-      "text": "Alright, let's get started. Our goal today is to decide whether we can approve the revised Brightline contract, and to lock in owners for anything still open.",
-      "ts_start": 0.0,
-      "ts_end": 7.55
+      "id": "utt_demo_001",
+      "speaker": "Maya",
+      "text": "We decided that the cancellation experience will use a two-step guided flow with an immediate exit option.",
+      "ts_start": 0,
+      "ts_end": 7
     },
     {
-      "id": "utt_002",
-      "speaker": "Morgan",
-      "text": "Before we dive in, operations needs a go or no-go by end of week. Brightline's implementation team is only holding our slot through Friday.",
-      "ts_start": 8.55,
-      "ts_end": 17.27
+      "id": "utt_demo_002",
+      "speaker": "Maya",
+      "text": "I will send the revised two-step prototype to Legal by Friday.",
+      "ts_start": 8,
+      "ts_end": 13
     },
     {
-      "id": "utt_003",
-      "speaker": "Dana",
-      "text": "Legal is mostly comfortable now. The revised indemnity clause raises the cap to twelve months of fees, which is what we asked for. The one thing I can't confirm yet is whether that cap covers third-party claims. I need outside counsel's read on the new language.",
-      "ts_start": 18.27,
-      "ts_end": 31.99
+      "id": "utt_demo_003",
+      "speaker": "Jordan",
+      "text": "Someone should send the final cancellation specification to the outside vendor before Friday.",
+      "ts_start": 14,
+      "ts_end": 21
     },
     {
-      "id": "utt_004",
-      "speaker": "Alex",
-      "text": "Okay. Someone should get the redlined indemnity language over to outside counsel today so that doesn't block us.",
-      "ts_start": 32.99,
-      "ts_end": 38.79
+      "id": "utt_demo_004",
+      "speaker": "Jordan",
+      "text": "Does Legal approve sharing the internal conversion analysis outside the company?",
+      "ts_start": 22,
+      "ts_end": 28
     },
     {
-      "id": "utt_005",
-      "speaker": "Dana",
-      "text": "I'll take that. I'll send the redline to outside counsel this afternoon.",
-      "ts_start": 39.79,
-      "ts_end": 43.99
-    },
-    {
-      "id": "utt_006",
-      "speaker": "Priya",
-      "text": "On the finance side, the payment terms changed from net forty-five to net thirty. I want to be sure that timing still fits our third-quarter cash forecast before we sign.",
-      "ts_start": 44.99,
-      "ts_end": 56.72
-    },
-    {
-      "id": "utt_007",
-      "speaker": "Alex",
-      "text": "How quickly can you confirm that?",
-      "ts_start": 57.72,
-      "ts_end": 59.34
-    },
-    {
-      "id": "utt_008",
-      "speaker": "Priya",
-      "text": "I'll rerun the payment schedule against the forecast and circulate the result soon.",
-      "ts_start": 60.34,
-      "ts_end": 65.17
-    },
-    {
-      "id": "utt_009",
-      "speaker": "Morgan",
-      "text": "Separate topic. Brightline also floated a multi-year discount if we commit before the end of the quarter. Do we want to explore that now?",
-      "ts_start": 66.17,
-      "ts_end": 73.88
-    },
-    {
-      "id": "utt_010",
-      "speaker": "Alex",
-      "text": "Not today. Let's put the multi-year option in the parking lot and stay on the revised terms.",
-      "ts_start": 74.88,
-      "ts_end": 79.19
-    },
-    {
-      "id": "utt_011",
-      "speaker": "Alex",
-      "text": "So here's where I think we are. I propose we approve the revised contract terms, contingent on outside counsel confirming the third-party coverage by Thursday.",
-      "ts_start": 80.19,
-      "ts_end": 88.32
-    },
-    {
-      "id": "utt_012",
-      "speaker": "Dana",
-      "text": "Agreed, as long as approval stays contingent on counsel's confirmation.",
-      "ts_start": 89.32,
-      "ts_end": 93.18
-    },
-    {
-      "id": "utt_013",
-      "speaker": "Priya",
-      "text": "Agreed on my side too, assuming the payment timing checks out against the forecast.",
-      "ts_start": 94.18,
-      "ts_end": 99.01
-    },
-    {
-      "id": "utt_014",
-      "speaker": "Alex",
-      "text": "Then that's our decision. Conditional approval, with counsel confirmation due Thursday.",
-      "ts_start": 100.01,
-      "ts_end": 104.38
-    },
-    {
-      "id": "utt_015",
-      "speaker": "Morgan",
-      "text": "One more thing. Someone has to get back to Brightline with our final position before Friday, or we lose the implementation slot.",
-      "ts_start": 105.38,
-      "ts_end": 112.9
-    },
-    {
-      "id": "utt_016",
-      "speaker": "Alex",
-      "text": "Right. We'll figure out who sends that after this call. Anything else before we wrap up?",
-      "ts_start": 113.9,
-      "ts_end": 118.03
-    },
-    {
-      "id": "utt_017",
-      "speaker": "Alex",
-      "text": "Okay, fair catch. Morgan, can you own the message to Brightline, out by Friday morning?",
-      "ts_start": 122.03,
-      "ts_end": 126.7
-    },
-    {
-      "id": "utt_018",
-      "speaker": "Morgan",
-      "text": "Yes. I'll send Brightline our conditional approval by Friday morning.",
-      "ts_start": 127.7,
-      "ts_end": 131.28
-    },
-    {
-      "id": "utt_019",
-      "speaker": "Priya",
-      "text": "And put me down to finish the forecast check by Wednesday close of business.",
-      "ts_start": 132.28,
-      "ts_end": 136.77
-    },
-    {
-      "id": "utt_020",
-      "speaker": "Alex",
-      "text": "Perfect. That closes it out. Thanks, everyone.",
-      "ts_start": 137.77,
-      "ts_end": 140.28
+      "id": "utt_demo_005",
+      "speaker": "Maya",
+      "text": "Not today. Put the multi-page alternative in the parking lot.",
+      "ts_start": 29,
+      "ts_end": 34
     }
   ]
 }

@@ -1,106 +1,115 @@
 # LocalRoom
 
-LocalRoom is a LAN-only WebRTC meeting workspace with a private AI participant. It
-transcribes each participant separately, proposes synchronized decisions and commitments,
-conducts collective polls, answers from institutional memory, governs sensitive actions,
-and persists follow-up work after participants leave.
+**A meeting room that keeps the people—and the intelligence—in the room.**
 
-The native iPhone/iPad client lives in a separate repository:
-**[localroom-ios-app](https://github.com/NSEvent/localroom-ios-app)**.
+LocalRoom is a LAN-only meeting appliance built for the 2026 Dell × NVIDIA
+hackathon. Browsers and native iOS clients join over WebRTC. A Dell Pro with
+NVIDIA GB10 transcribes each speaker, maintains a shared meeting record, catches
+missing owners and unresolved questions, blocks unsafe disclosures, answers
+from local institutional memory, and produces the handoff. No meeting content
+needs a cloud AI API.
 
-## Demo endpoint
+## The demo
 
-`https://172.16.10.189:4174/?room=DELL-DEMO`
+1. Join from two participant devices. LocalRoom arbitrates nearby microphones
+   and attributes captions to the right speaker.
+2. Project `/console/`. Decisions, actions, questions, alerts, and parking-lot
+   items assemble live from the same authoritative room state.
+3. Ask **“Pork Chop, …”** for a private local-model answer.
+4. Attempt to share restricted Project Iliad analysis externally. LocalRoom
+   removes the unsafe action and records proof of the block.
+5. Run **Closing Sweep**. Resolve the remaining owner/question, then export the
+   brief and local workspace artifacts.
 
-The iOS wrapper auto-joins this endpoint. Browser clients must trust the event's local
-certificate once; `/setup.html` contains the Windows flow.
+The event dialogue and Project Iliad material are synthetic. Historical context
+uses public court records.
 
-## What is real
+## One appliance, three surfaces
 
-- Browser-to-browser WebRTC media on the LAN.
-- Isolated 16 kHz transcription streams and speaker arbitration.
-- NVIDIA Parakeet ASR on the Dell Pro.
-- Room-authoritative cards with atomic first-action-wins semantics.
-- Multi-participant polls that close only after all current participants vote.
-- Three selectable local LLMs: Qwen 30B, Nemotron 30B, Nemotron 4B.
-- Four selectable Kokoro 82M voices; WAV synthesis never leaves the box.
-- Wiki-style institutional memory grounded in a local copy of the public FTC Amazon Prime complaint.
-- Classification/recipient policy that removes unsafe send actions.
-- A real OpenShell sandbox egress attempt whose 403 denial is shown in the meeting.
-- Meeting brief, task JSON, email draft, and calendar invite written to local disk.
-- A recurring commitment-monitor sweep recorded in the append-only audit trail.
+| Surface | Route / source | Job |
+|---|---|---|
+| Participant workspace | `/` · `public/` | WebRTC media, captions, shared cards, polls, private AI |
+| Projector console | `/console/` · `apps/console/` | Live record, alerts, host corrections, closing sweep, export |
+| Native client | `apps/ios/` | iPhone/iPad wrapper with configurable LAN endpoint |
 
-Restricted Project Iliad artifacts and meeting dialogue are synthetic. Historical context
-is a simulation based on public court records.
+One Node process owns signaling, room state, console WebSockets, transcription
+coordination, policy, local model routing, and handoff artifacts. The committed
+console build lets the event appliance run without a package registry or WAN.
 
-## Service map
+## Run it
 
-| Port | Service |
-|---|---|
-| 4173 | LocalRoom HTTP |
-| 4174 | LocalRoom HTTPS |
-| 8001 | Parakeet ASR |
-| 8003 | Kokoro TTS |
-| 8080 | Qwen 30B |
-| 8092 | Nemotron 30B |
-| 8093 | Nemotron 4B |
-| 8100 | NemoClaw/OpenShell gateway |
+Requires Node 20+, npm, and `ffmpeg` for non-WAV browser audio. Xcode is only
+needed for the iOS gate.
 
-Persistent app data lives under `data/`: the FTC source corpus, metadata-only audit JSONL,
-generated speech, and workspace handoff artifacts.
+```bash
+make setup
+make run
+```
+
+Open:
+
+- Participant: <http://127.0.0.1:4173/?room=DELL-DEMO>
+- Projector: <http://127.0.0.1:4173/console/session/DELL-DEMO>
+
+Seed the deterministic five-moment judge flow after the server starts:
+
+```bash
+make seed
+```
+
+Production appliance services can be supplied through `ASR_URL`, `QWEN_URL`,
+`NEMOTRON_URL`, `FAST_MODEL_URL`, and `TTS_URL`. Local defaults target
+Parakeet, Qwen 3 30B, and Nemotron endpoints on the appliance/LAN. `TLS_KEY`,
+`TLS_CERT`, and `CA_CERT_PATH` enable the event HTTPS/certificate flow.
+
+## Quality gate
+
+```bash
+make gate
+```
+
+The gate runs:
+
+- syntax, console lint/typecheck/production build, and hosted-AI endpoint scan;
+- 28 Node unit/contract tests;
+- browser E2E with fake camera/microphone: host setup/recovery, WebRTC entry,
+  policy block, live-console edits, Q&A, closing sweep, export, and iPhone layout;
+- iOS app plus unit-test target `build-for-testing`.
+
+CI repeats the web gate on Ubuntu and the iOS compile gate on macOS.
+
+## What came from where
+
+This monorepo preserves the useful history from all three team efforts:
+
+- [`NSEvent/localroom`](https://github.com/NSEvent/localroom)—participant
+  experience, WebRTC, private AI, policy, polls, and handoff.
+- [`NSEvent/localroom-ios-app`](https://github.com/NSEvent/localroom-ios-app)—the
+  native iPhone/iPad client, now under `apps/ios/`.
+- [`outdoorsea/meety-local`](https://github.com/outdoorsea/meety-local)—the
+  projector-console foundation and transcript-quality patterns, now integrated
+  against LocalRoom’s single authority.
+
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for imported MIT-licensed
+portions.
 
 ## Source map
 
-Orientation for anyone (or any agent) reading this repository cold:
-
 | File | Responsibility |
 |---|---|
-| `server.js` | HTTP/HTTPS server, WebRTC signaling, room state, ASR/LLM/TTS fan-out |
-| `localroom-core.js` | `RoomIntelligence` (decisions, commitments, polls, cards), `authorizeShare` classification policy, wake-word parsing, memory answering |
-| `local-services.js` | `LocalModelService` (Qwen/Nemotron), `LocalSpeechService` (Parakeet/Kokoro), `AuditTrail` append-only JSONL |
-| `audio-arbitration.js` | Speaker arbitration by gain, so co-located mics don't double-transcribe |
-| `workspace-actions.js` | Post-meeting artifacts: brief, task JSON, email draft, calendar invite |
-| `corpus-index.js` | Institutional-memory retrieval over the local corpus |
-| `public/app.js` | Client UI, card rendering, vote handling |
-| `public/media.js` | getUserMedia, peer connections, per-participant 16 kHz capture |
-| `test/` | Node test-runner suites for the four modules above |
-
-## Local gate
-
-```bash
-npm run check
-npm test
-```
-
-## GB10 recovery
-
-```bash
-ssh gb10
-tmux list-sessions
-curl -sk https://127.0.0.1:4174/health | python3 -m json.tool
-```
-
-Expected sessions: `localroom`, `localroom-https`, `localroom-ai`, `meety`, `nemoclaw`.
-Do not stop `meety`; it owns the shared ASR service.
-
-To restart only LocalRoom:
-
-```bash
-tmux kill-session -t localroom
-tmux kill-session -t localroom-https
-tmux new-session -d -s localroom '$HOME/hack/localroom/start-localroom.sh 4173'
-tmux new-session -d -s localroom-https '$HOME/hack/localroom/start-localroom.sh 4174'
-```
-
-The lower-left `⌘` opens the discreet demo director. It injects transcript moments through
-the same server path as live ASR; cards, policies, votes, actions, and synchronization are
-not mocked.
-
-Say **“Pork Chop, …”** to address the room agent hands-free. The wake-word parser also accepts
-the common ASR renderings “porkchop” and “pork shop”; ordinary conversation does not trigger
-an agent reply.
+| `server.js` | HTTP/TLS entrypoint, signaling, audio, API wiring |
+| `localroom-core.js` | cards, polls, policy, model/voice choice, handoff |
+| `meeting-record.js` | authoritative decisions/actions/questions/alerts record |
+| `console-api.js` | console REST and WebSocket compatibility layer |
+| `transcript-quality.js` | glossary correction guard and recognition archive |
+| `appliance-health.js` | local-runtime proof and appliance health |
+| `local-services.js` | local model, speech, and append-only audit adapters |
+| `audio-arbitration.js` | speaker selection across co-located microphones |
+| `workspace-actions.js` | brief, task JSON, email draft, and calendar invite |
+| `test/` | unit, contract, and browser end-to-end suites |
 
 ## License
 
-Source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE.md)—read,
-build, and run it freely for noncommercial purposes.
+Source-available under the
+[PolyForm Noncommercial License 1.0.0](LICENSE.md)—free to read, build, and run
+for noncommercial use. Commercial licenses: <https://thekevintang.gumroad.com/>.

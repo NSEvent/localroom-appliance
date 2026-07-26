@@ -1,14 +1,5 @@
-import AVFoundation
 import SwiftUI
 import WebKit
-
-enum LocalRoomEndpoint {
-    // Hackathon LAN address. Replace with service discovery after the demo.
-    static let meetingURL = URL(
-        string: "https://172.16.10.189:4174/?room=DELL-DEMO&autojoin=1&name=LocalRoom%20iOS"
-    )!
-    static let allowedHost = "172.16.10.189"
-}
 
 struct MeetingWebView: UIViewRepresentable {
     let url: URL
@@ -54,7 +45,7 @@ struct MeetingWebView: UIViewRepresentable {
                 completionHandler(.performDefaultHandling, nil)
                 return
             }
-            // Hackathon-only appliance pin: trust TLS only for the hardcoded Dell host.
+            // Hackathon appliance pin: trust development TLS only for the configured host.
             completionHandler(.useCredential, URLCredential(trust: trust))
         }
 
@@ -87,8 +78,7 @@ struct MeetingWebView: UIViewRepresentable {
             decidePolicyFor navigationAction: WKNavigationAction,
             decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
         ) {
-            guard let host = navigationAction.request.url?.host,
-                  host == LocalRoomEndpoint.allowedHost else {
+            guard LocalRoomEndpoint.allowsNavigation(to: navigationAction.request.url) else {
                 decisionHandler(.cancel)
                 return
             }

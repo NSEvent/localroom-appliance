@@ -3,50 +3,7 @@
 
 import { useState } from 'react'
 import * as api from '../api'
-import { useMicCapture } from '../mic'
 import { useStore } from '../store'
-
-/** Per-window mic toggle, ui-spec §10 P0: three visible states —
- * off (no stream held) / recording (red dot pulse) / paused. Host console
- * only; capture is 5 s stop/restart MediaRecorder chunks (D22). */
-function MicToggle({ disabled }: { disabled: boolean }) {
-  const { sessionId, sourceId, health } = useStore()
-  const { micState, micError, toggleMic, togglePause } =
-    useMicCapture(sessionId, sourceId)
-  // The room mic is wired to the appliance. When the console is being viewed
-  // FROM the appliance, browser capture is off by default — it would fight
-  // the appliance for the exclusive capture device and add nothing.
-  const onAppliance = health?.capture.clientIsAppliance ?? false
-  if (onAppliance) {
-    return (
-      <div className="mic-controls appliance" title="Capture runs on the appliance">
-        <span className="mic-appliance-note">
-          <span className="mic-dot appliance" aria-hidden /> Appliance mic
-        </span>
-      </div>
-    )
-  }
-  return (
-    <div className="mic-controls" title={micError ?? undefined}>
-      <button
-        type="button"
-        className={`btn btn-outline mic-btn ${micState}`}
-        onClick={toggleMic}
-        disabled={disabled}
-        aria-pressed={micState !== 'off'}
-      >
-        <span className="mic-dot" aria-hidden />
-        {micState === 'off' ? 'Mic Off' : micState === 'recording' ? 'Recording' : 'Mic Paused'}
-      </button>
-      {micState !== 'off' && (
-        <button type="button" className="btn btn-outline mic-pause" onClick={togglePause}>
-          {micState === 'recording' ? 'Pause' : 'Resume'}
-        </button>
-      )}
-      {micError && <span className="mic-error">mic error</span>}
-    </div>
-  )
-}
 
 function RuntimeStatus() {
   const { health, healthError } = useStore()
@@ -101,7 +58,7 @@ export function TopBar() {
   return (
     <header className="topbar">
       <div className="wordmark">
-        <span className="meety">Meety</span> Local
+        <span className="local">Local</span>Room
       </div>
       <div>
         <div className="session-title">{meta?.title ?? '…'}</div>
@@ -123,7 +80,11 @@ export function TopBar() {
         ))}
       </nav>
       <RuntimeStatus />
-      <MicToggle disabled={status === 'ended'} />
+      <div className="mic-controls appliance" title="Capture arrives from participant devices">
+        <span className="mic-appliance-note">
+          <span className="mic-dot appliance" aria-hidden /> LAN participant audio
+        </span>
+      </div>
       <button
         type="button"
         className="btn btn-outline"

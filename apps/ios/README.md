@@ -1,19 +1,20 @@
 # LocalRoom iOS
 
-Native iPhone/iPad client for the Dell × NVIDIA hackathon meeting demo. The app
-uses native iOS camera/microphone permission handling and embeds the same
-LocalRoom WebRTC client as the browser build.
+Native iPhone/iPad client inside the LocalRoom appliance monorepo. The app uses
+native iOS camera/microphone permission handling and embeds the same LocalRoom
+WebRTC participant surface as the browser build.
 
-The server and browser client live in a separate repository:
-**[localroom](https://github.com/NSEvent/localroom)**.
-
-The hackathon endpoint is intentionally hardcoded:
+The hackathon endpoint remains the safe default:
 
 `https://172.16.10.189:4174/?room=DELL-DEMO&autojoin=1`
 
+For another appliance, override the `LOCALROOM_BASE_URL` build setting. It is
+written into the generated Info.plist; URL construction and same-appliance
+navigation policy are covered by unit tests.
+
 ## Local certificate
 
-The app accepts the development certificate only for the hardcoded Dell host.
+The app accepts the development certificate only for the configured appliance host.
 Safari and browser clients still need Kevin's local `mkcert` CA installed:
 
 1. AirDrop the `rootCA.pem` from `mkcert -CAROOT` to the iPhone.

@@ -95,7 +95,7 @@ export function PresenterControls() {
     <div className="presenter">
       <div className="presenter-head">
         <div className="wordmark">
-          <span className="meety">Meety</span> Local
+          <span className="local">Local</span>Room
         </div>
         <span className="presenter-tag">PRESENTER — NOT ON PROJECTOR</span>
         <span className="presenter-pos">

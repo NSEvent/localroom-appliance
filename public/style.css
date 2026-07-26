@@ -23,6 +23,7 @@ button,input{font:inherit}button{cursor:pointer}.hidden{display:none!important}
 #join-form button{grid-column:1/-1;border:0;border-radius:8px;padding:17px 20px;background:#171a18;color:white;font-weight:650;display:flex;justify-content:space-between}
 .trust-row{margin-top:22px;display:flex;gap:22px;font:10px "IBM Plex Mono","SFMono-Regular",monospace;text-transform:uppercase;color:#717872}
 .setup-link{display:inline-block;margin-top:18px;color:#53643d;font-size:11px;font-weight:700;text-decoration:none;border-bottom:1px solid #9eaa89}
+.lobby-links{display:flex;gap:22px;flex-wrap:wrap}
 .lobby-aside{display:grid;place-content:center;gap:54px;background:#0d100e;color:white;position:relative;overflow:hidden}
 .lobby-aside:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 46%,#b8f34a1f,transparent 45%),linear-gradient(135deg,transparent 49.5%,#ffffff08 50%,transparent 50.5%);background-size:auto,28px 28px}
 .appliance-orbit{width:430px;height:430px;position:relative;display:grid;place-items:center}.orbit{position:absolute;border:1px solid #3d473b;border-radius:50%}.orbit-one{inset:54px}.orbit-two{inset:0;border-style:dashed;animation:spin 40s linear infinite}

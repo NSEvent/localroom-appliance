@@ -6,11 +6,14 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { WebSocketServer } from "ws";
 import express from "express";
+import { createHealthSnapshot } from "./appliance-health.js";
 import { selectSpeakerCandidate } from "./audio-arbitration.js";
+import { ConsoleHub, createConsoleRouter } from "./console-api.js";
 import { answerFromMemory, demoMemory, extractWakePrompt, RoomIntelligence } from "./localroom-core.js";
 import { AuditTrail, LocalModelService, LocalSpeechService } from "./local-services.js";
 import { WorkspaceActions } from "./workspace-actions.js";
 import { corpusStats } from "./corpus-index.js";
+import { Glossary, RecognitionArchive } from "./transcript-quality.js";
 
 const PORT = Number(process.env.PORT || 4173);
 const ASR_URL = (process.env.ASR_URL || "http://172.16.10.189:8001").replace(/\/$/, "");
@@ -18,10 +21,21 @@ const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 const DATA_DIR = process.env.LOCALROOM_DATA_DIR || path.join(import.meta.dirname, "data");
 const GENERATED_DIR = path.join(DATA_DIR, "generated");
 const intelligence = new RoomIntelligence();
+const consoleHub = new ConsoleHub(intelligence);
 const models = new LocalModelService();
 const speech = new LocalSpeechService({ outputDir: GENERATED_DIR });
 const audit = new AuditTrail(path.join(DATA_DIR, "audit.jsonl"));
 const workspace = new WorkspaceActions(path.join(DATA_DIR, "workspace"));
+const glossary = new Glossary([
+  { term: "LocalRoom", aliases: ["local room"] },
+  { term: "Pork Chop", aliases: ["porkchop", "pork shop"] },
+  { term: "Project Iliad", aliases: ["project illy ad", "project iliot"] },
+  { term: "Qwen", aliases: ["Quinn", "queen"] },
+  { term: "Nemotron", aliases: ["nemo tron"] },
+  { term: "Parakeet", aliases: ["parrot key"] },
+  { term: "OpenShell", aliases: ["open shell"] },
+]);
+const recognitions = new RecognitionArchive(path.join(DATA_DIR, "recognitions.jsonl"));
 const pendingAudioWindows = new Map();
 let modelCatalog = [];
 const voiceCatalog = [
@@ -30,10 +44,25 @@ const voiceCatalog = [
   { id: "am_michael", label: "Michael", role: "Composed advisor" },
   { id: "am_adam", label: "Adam", role: "Direct operator" },
 ];
+const healthSnapshot = createHealthSnapshot({
+  asrURL: ASR_URL,
+  models,
+  intelligence,
+  voiceCatalog,
+  audit,
+  demoMemory,
+  corpusStats,
+  dataDir: DATA_DIR,
+  workspace,
+  glossary,
+  recognitions,
+  onModels: (availableModels) => { modelCatalog = availableModels; },
+});
 
 const app = express();
 app.disable("x-powered-by");
 app.use(express.static(path.join(import.meta.dirname, "public")));
+app.use("/console", express.static(path.join(import.meta.dirname, "apps/console/dist")));
 app.use("/generated", express.static(GENERATED_DIR, { maxAge: "1h" }));
 app.use("/api", express.json({ limit: "1mb" }));
 
@@ -44,20 +73,7 @@ app.get("/localroom-ca.pem", (_request, response) => {
 });
 
 app.get("/health", async (_request, response) => {
-  const [asr, availableModels] = await Promise.all([asrHealth(), models.models()]);
-  modelCatalog = availableModels;
-  response.json({
-    status: "ok",
-    local: true,
-    cloudEgressBytes: 0,
-    asr,
-    models: availableModels,
-    voices: voiceCatalog,
-    auditRecords: audit.read(500).length,
-    memoryRecords: demoMemory.length + corpusStats(DATA_DIR).records,
-    corpus: corpusStats(DATA_DIR),
-    commitmentMonitor: workspace.monitor(),
-  });
+  response.json(await healthSnapshot(_request));
 });
 
 app.get("/api/rooms/:roomId", (request, response) => {
@@ -95,10 +111,7 @@ app.post("/api/rooms/:roomId/agent", async (request, response) => {
 
 app.post("/api/rooms/:roomId/end", (request, response) => {
   const roomId = clean(request.params.roomId, 80);
-  const brief = intelligence.endMeeting(roomId, clean(request.body.actorName, 50) || "Organizer");
-  brief.artifacts = workspace.execute(roomId, brief);
-  audit.append({ kind: "agent_run", status: "completed", actor: "LocalRoom Agent", action: "meeting-handoff", roomId });
-  broadcast(roomId, { type: "meeting-ended", brief, room: intelligence.snapshot(roomId) });
+  const brief = performEndMeeting(roomId, clean(request.body.actorName, 50) || "Organizer");
   response.json(brief);
 });
 
@@ -122,12 +135,36 @@ app.post("/api/transcribe", express.raw({ type: "*/*", limit: MAX_AUDIO_BYTES })
   }
 });
 
+app.use("/api", createConsoleRouter({
+  intelligence,
+  consoleHub,
+  health: healthSnapshot,
+  publishDemoCaption,
+  endMeeting: performEndMeeting,
+}));
+
+app.get(/^\/console(?:\/.*)?$/, (_request, response) => {
+  response.sendFile(path.join(import.meta.dirname, "apps/console/dist/index.html"));
+});
+
 const tlsKey = process.env.TLS_KEY;
 const tlsCert = process.env.TLS_CERT;
 const server = tlsKey && tlsCert
   ? https.createServer({ key: fs.readFileSync(tlsKey), cert: fs.readFileSync(tlsCert) }, app)
   : http.createServer(app);
-const wss = new WebSocketServer({ server, path: "/signal" });
+const wss = new WebSocketServer({ noServer: true });
+
+server.on("upgrade", (request, socket, head) => {
+  const pathname = new URL(request.url, "http://localroom").pathname;
+  if (pathname === "/signal") {
+    wss.handleUpgrade(request, socket, head, (webSocket) => {
+      wss.emit("connection", webSocket, request);
+    });
+    return;
+  }
+  if (consoleHub.upgrade(request, socket, head, pathname)) return;
+  socket.destroy();
+});
 
 wss.on("connection", (socket, request) => {
   socket.clientAddress = request.socket.remoteAddress;
@@ -271,9 +308,11 @@ async function answerAgent(roomId, question, actorName) {
 }
 
 function publishCaption(roomId, caption) {
-  const proposals = intelligence.addCaption(roomId, caption);
+  intelligence.addCaption(roomId, caption);
   broadcast(roomId, caption);
-  if (proposals.length) broadcastRoom(roomId);
+  const utterance = intelligence.room(roomId).record.utterances.find((item) => item.id === caption.id);
+  if (utterance) consoleHub.broadcast(roomId, { type: "utterance.created", utterance });
+  broadcastRoom(roomId);
   const question = extractWakePrompt(caption.text);
   if (question) {
     console.log(`[wake] Pork Chop detected for room ${roomId}; participant ${caption.participantId}`);
@@ -283,6 +322,29 @@ function publishCaption(roomId, caption) {
     answerAgent(roomId, question, caption.name).catch((error) =>
       broadcast(roomId, { type: "agent-error", message: error.message }));
   }
+}
+
+function publishDemoCaption(roomId, item) {
+  const caption = makeCaption({
+    id: clean(item.id, 80) || crypto.randomUUID(),
+    participantId: clean(item.source_id, 80) || clean(item.speaker, 80) || "demo-speaker",
+    name: clean(item.speaker || item.name, 50) || "Participant",
+    text: cleanText(item.text, 1200),
+    latencyMs: 218,
+    attributionConfidence: 0.98,
+    demo: true,
+  });
+  publishCaption(roomId, caption);
+  return intelligence.room(roomId).record.utterances.find((entry) => entry.id === caption.id) || null;
+}
+
+function performEndMeeting(roomId, actorName) {
+  const brief = intelligence.endMeeting(roomId, actorName);
+  brief.artifacts = workspace.execute(roomId, brief);
+  audit.append({ kind: "agent_run", status: "completed", actor: "LocalRoom Agent", action: "meeting-handoff", roomId });
+  broadcast(roomId, { type: "meeting-ended", brief, room: intelligence.snapshot(roomId) });
+  broadcastRoom(roomId);
+  return brief;
 }
 
 async function synthesizeAnswer(roomId, event, voice) {
@@ -325,11 +387,26 @@ async function flushAudioWindow(key) {
     const upstream = await fetch(`${ASR_URL}/transcribe`, { method: "POST", body: form, signal: AbortSignal.timeout(20_000) });
     if (!upstream.ok) throw new Error(`ASR ${upstream.status}`);
     const result = await upstream.json();
+    const rawText = String(result.text || "").trim();
+    const correction = glossary.correct(rawText);
+    const latencyMs = Math.round(performance.now() - winner.started);
+    recognitions.append({
+      roomId: winner.roomId,
+      participantId: winner.participantId,
+      model: result.model,
+      provider: result.provider || "NVIDIA Parakeet",
+      rawText,
+      text: correction.text,
+      latencyMs,
+      correction: correction.accepted ? correction.changes : null,
+    });
     const caption = makeCaption({
       participantId: winner.participantId,
       name: winner.participant.name,
-      text: String(result.text || "").trim(),
-      latencyMs: Math.round(performance.now() - winner.started),
+      text: correction.text,
+      rawText: correction.accepted ? rawText : null,
+      correction: correction.accepted ? correction.changes : null,
+      latencyMs,
       attributionConfidence: selection.confidence,
       separationDb: selection.separationDb,
     });
@@ -350,6 +427,7 @@ function updateParticipantState(meta, message) {
 
 function broadcastRoom(roomId) {
   broadcast(roomId, { type: "room-state", room: intelligence.snapshot(roomId) });
+  consoleHub.broadcastState(roomId);
 }
 
 function broadcast(roomId, payload, exceptId) {
@@ -394,15 +472,6 @@ server.listen(PORT, "0.0.0.0", async () => {
   console.log(`LocalRoom ready at ${tlsKey && tlsCert ? "https" : "http"}://localhost:${PORT}`);
   console.log(`Dell ASR: ${ASR_URL}; local models: ${modelCatalog.filter((model) => model.available).map((model) => model.label).join(", ") || "probing"}`);
 });
-
-async function asrHealth() {
-  try {
-    const upstream = await fetch(`${ASR_URL}/health`, { signal: AbortSignal.timeout(1800) });
-    return upstream.ok ? await upstream.json() : { status: "unavailable" };
-  } catch {
-    return { status: "offline" };
-  }
-}
 
 function makeCaption(values) {
   return { type: "caption", id: crypto.randomUUID(), at: new Date().toISOString(), ...values };

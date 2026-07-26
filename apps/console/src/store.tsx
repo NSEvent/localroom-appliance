@@ -17,8 +17,6 @@ export type WsStatus = 'connecting' | 'open' | 'reconnecting'
 
 export interface AppState {
   sessionId: string
-  /** This browser's participant stream, when joined as a participant. */
-  sourceId: string | null
   session: SessionState | null
   loading: boolean
   loadError: string | null
@@ -114,16 +112,13 @@ export function useStore(): Store {
 
 export function SessionProvider({
   sessionId,
-  sourceId = null,
   children,
 }: {
   sessionId: string
-  sourceId?: string | null
   children: ReactNode
 }) {
   const [state, dispatch] = useReducer(reducer, sessionId, (id) => ({
     sessionId: id,
-    sourceId,
     session: null,
     loading: true,
     loadError: null,

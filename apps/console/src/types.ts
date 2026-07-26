@@ -45,16 +45,6 @@ export interface Utterance {
   at_utc?: string
 }
 
-export interface AudioSource {
-  id: string
-  name: string
-  kind: string          // "room" | "browser"
-  created_at: number
-  last_seen: number | null
-  utterances: number
-  buffering: boolean
-}
-
 export type DecisionStatus = 'proposed' | 'decided' | 'superseded'
 
 export interface Decision {
@@ -219,49 +209,4 @@ export interface CapturePolicy {
   browserCaptureDefault: string
   /** ALSA id of the appliance's capture device, e.g. "plughw:1,0". */
   applianceDevice: string | null
-}
-
-export interface AudioDevice {
-  id: string
-  card: number
-  device: number
-  name: string
-  raw_id: string
-  uninteresting: boolean
-  default: boolean
-}
-
-export interface AudioDevices {
-  devices: AudioDevice[]
-  selected: string | null
-  busy: { busy: boolean; holders: { pid: number; comm: string }[]; path?: string }
-}
-
-export interface CaptureStatus {
-  running: boolean
-  session_id: string | null
-  device: string | null
-  chunks: number
-  errors: number
-  last_error: string | null
-  chunk_seconds: number
-}
-
-export interface AudioLevel {
-  ok: boolean
-  error?: string
-  busy?: boolean
-  holders?: { pid: number; comm: string }[]
-  device?: string
-  rate?: number
-  peak?: number
-  rms?: number
-  peak_pct?: number
-  rms_pct?: number
-  peak_dbfs?: number | null
-  rms_dbfs?: number | null
-  clipping?: boolean
-  silent?: boolean
-  /** "capture" when the reading came from the running capture loop. */
-  source?: string
 }

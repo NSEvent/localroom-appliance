@@ -10,6 +10,7 @@ settings:
     SWIFT_VERSION: "5.0"
     CURRENT_PROJECT_VERSION: 1
     MARKETING_VERSION: 1.0
+    LOCALROOM_BASE_URL: https://172.16.10.189:4174
 targets:
   LocalRoom:
     type: application
@@ -27,8 +28,24 @@ targets:
         INFOPLIST_KEY_NSLocalNetworkUsageDescription: LocalRoom connects to your Dell Pro on the local network for meetings and transcription.
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
         INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_LOCALROOM_BASE_URL: $(LOCALROOM_BASE_URL)
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
         GENERATE_INFOPLIST_FILE: true
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
     scheme:
-      testTargets: []
+      testTargets:
+        - LocalRoomTests
+  LocalRoomTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - LocalRoomTests
+    dependencies:
+      - target: LocalRoom
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: xyz.kevintang.localroom.tests
+        GENERATE_INFOPLIST_FILE: true
+        CODE_SIGNING_ALLOWED: false

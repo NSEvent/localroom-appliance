@@ -10,15 +10,30 @@
 		6A9DBA43E6EBADA4E57254C3 /* LocalRoomApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E6C3304FBA10CD9BF422A /* LocalRoomApp.swift */; };
 		89964DF2C3F32CBAEE071CB9 /* MeetingWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5256BAD0EE6F4FACBC742E56 /* MeetingWebView.swift */; };
 		CC936CF88A3234C17D987386 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 048AD039F02D7A9FC915BA48 /* Assets.xcassets */; };
+		D20AEBB5159983D8DFB8E4BE /* LocalRoomEndpointTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4D041B689A4C15AA35AF163 /* LocalRoomEndpointTests.swift */; };
 		D96D4BDFABE2E87DE7601C8E /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E082CF989EF1D5F69258CB /* ContentView.swift */; };
+		DFD12DD7C6F72A482A09FF45 /* LocalRoomEndpoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C15C09C637235DC7B37E5C6 /* LocalRoomEndpoint.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		76E021867162DCF731687DC6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 67A7B32649CF420A6A286415 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 96E860C7479AA055B1497382;
+			remoteInfo = LocalRoom;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		048AD039F02D7A9FC915BA48 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		45E082CF989EF1D5F69258CB /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		5256BAD0EE6F4FACBC742E56 /* MeetingWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeetingWebView.swift; sourceTree = "<group>"; };
 		6F6E6C3304FBA10CD9BF422A /* LocalRoomApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalRoomApp.swift; sourceTree = "<group>"; };
+		8C15C09C637235DC7B37E5C6 /* LocalRoomEndpoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalRoomEndpoint.swift; sourceTree = "<group>"; };
+		B4D041B689A4C15AA35AF163 /* LocalRoomEndpointTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalRoomEndpointTests.swift; sourceTree = "<group>"; };
 		CAFF10503D5C8EA9B08E9F3D /* LocalRoom.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LocalRoom.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FB29BAC15D9E59356C8E03B9 /* LocalRoomTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LocalRoomTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -28,6 +43,7 @@
 				048AD039F02D7A9FC915BA48 /* Assets.xcassets */,
 				45E082CF989EF1D5F69258CB /* ContentView.swift */,
 				6F6E6C3304FBA10CD9BF422A /* LocalRoomApp.swift */,
+				8C15C09C637235DC7B37E5C6 /* LocalRoomEndpoint.swift */,
 				5256BAD0EE6F4FACBC742E56 /* MeetingWebView.swift */,
 			);
 			path = LocalRoom;
@@ -37,6 +53,7 @@
 			isa = PBXGroup;
 			children = (
 				CAFF10503D5C8EA9B08E9F3D /* LocalRoom.app */,
+				FB29BAC15D9E59356C8E03B9 /* LocalRoomTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -45,13 +62,40 @@
 			isa = PBXGroup;
 			children = (
 				270DA23B996FFE37F8F2DB4C /* LocalRoom */,
+				C19963A639E5667A88AAA90B /* LocalRoomTests */,
 				668C08BD6479F1EBEA667E4B /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		C19963A639E5667A88AAA90B /* LocalRoomTests */ = {
+			isa = PBXGroup;
+			children = (
+				B4D041B689A4C15AA35AF163 /* LocalRoomEndpointTests.swift */,
+			);
+			path = LocalRoomTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		2486AEDF6E3F71EB8EDC7B62 /* LocalRoomTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E06C4D1FAA1B93CCE88BB2F2 /* Build configuration list for PBXNativeTarget "LocalRoomTests" */;
+			buildPhases = (
+				191BBE85E3FC3D0B11CE9949 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5B659578FAEE17990D928E65 /* PBXTargetDependency */,
+			);
+			name = LocalRoomTests;
+			packageProductDependencies = (
+			);
+			productName = LocalRoomTests;
+			productReference = FB29BAC15D9E59356C8E03B9 /* LocalRoomTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		96E860C7479AA055B1497382 /* LocalRoom */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = E513FFC5400FD90140D97292 /* Build configuration list for PBXNativeTarget "LocalRoom" */;
@@ -79,6 +123,10 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					2486AEDF6E3F71EB8EDC7B62 = {
+						DevelopmentTeam = 542GXYT5Z2;
+						ProvisioningStyle = Automatic;
+					};
 					96E860C7479AA055B1497382 = {
 						DevelopmentTeam = 542GXYT5Z2;
 						ProvisioningStyle = Automatic;
@@ -100,6 +148,7 @@
 			projectRoot = "";
 			targets = (
 				96E860C7479AA055B1497382 /* LocalRoom */,
+				2486AEDF6E3F71EB8EDC7B62 /* LocalRoomTests */,
 			);
 		};
 /* End PBXProject section */
@@ -116,17 +165,34 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		191BBE85E3FC3D0B11CE9949 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D20AEBB5159983D8DFB8E4BE /* LocalRoomEndpointTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7DB30658AB05E1D5F119E8FE /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				D96D4BDFABE2E87DE7601C8E /* ContentView.swift in Sources */,
 				6A9DBA43E6EBADA4E57254C3 /* LocalRoomApp.swift in Sources */,
+				DFD12DD7C6F72A482A09FF45 /* LocalRoomEndpoint.swift in Sources */,
 				89964DF2C3F32CBAEE071CB9 /* MeetingWebView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5B659578FAEE17990D928E65 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 96E860C7479AA055B1497382 /* LocalRoom */;
+			targetProxy = 76E021867162DCF731687DC6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		111A3941FB54907EDE19C41B /* Debug */ = {
@@ -184,6 +250,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALROOM_BASE_URL = "https://172.16.10.189:4174";
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -245,6 +312,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALROOM_BASE_URL = "https://172.16.10.189:4174";
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -264,11 +332,14 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LocalRoom;
+				INFOPLIST_KEY_LOCALROOM_BASE_URL = "$(LOCALROOM_BASE_URL)";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LocalRoom uses the camera so other meeting participants can see you.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "LocalRoom connects to your Dell Pro on the local network for meetings and transcription.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LocalRoom uses the microphone for the call and private local transcription on your Dell Pro.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -280,6 +351,42 @@
 			};
 			name = Debug;
 		};
+		89CA2A6C0D0A9925BD20E762 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.kevintang.localroom.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalRoom.app/LocalRoom";
+			};
+			name = Release;
+		};
+		89DAE704E7A3B0B753BE9F4B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGNING_ALLOWED = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = xyz.kevintang.localroom.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LocalRoom.app/LocalRoom";
+			};
+			name = Debug;
+		};
 		AE7C9922ADC9421A893298A8 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -288,11 +395,14 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LocalRoom;
+				INFOPLIST_KEY_LOCALROOM_BASE_URL = "$(LOCALROOM_BASE_URL)";
 				INFOPLIST_KEY_NSCameraUsageDescription = "LocalRoom uses the camera so other meeting participants can see you.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "LocalRoom connects to your Dell Pro on the local network for meetings and transcription.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LocalRoom uses the microphone for the call and private local transcription on your Dell Pro.";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -307,6 +417,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		E06C4D1FAA1B93CCE88BB2F2 /* Build configuration list for PBXNativeTarget "LocalRoomTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				89DAE704E7A3B0B753BE9F4B /* Debug */,
+				89CA2A6C0D0A9925BD20E762 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		E513FFC5400FD90140D97292 /* Build configuration list for PBXNativeTarget "LocalRoom" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

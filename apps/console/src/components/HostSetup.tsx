@@ -1,6 +1,4 @@
-// Host setup (route "/"): Chuck + wordmark, title/goal/participants/context
-// form prefilled with the Brightline demo defaults; Start → POST /api/sessions
-// → navigate to /session/{id}. The only screen where Chuck appears.
+// Host setup (route "/host"): title, goal, participants, and local context.
 
 import { useState, type FormEvent } from 'react'
 import * as api from '../api'
@@ -52,9 +50,8 @@ export function HostSetup({ navigate, theme, setTheme }: Props) {
     <div className="setup">
       <div className="setup-card">
         <div className="setup-head">
-          <img src="/chuck-logo.png" alt="Chuck, the Meety mascot" />
           <div className="wordmark">
-            <span className="meety">Meety</span> Local
+            <span className="local">Local</span>Room
           </div>
           <span className="tagline">local-only · no cloud APIs</span>
           <button

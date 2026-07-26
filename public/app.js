@@ -398,6 +398,7 @@ function toast(message) {
 
 const params = new URLSearchParams(location.search);
 if (params.get("room")) $("#room-code").value = params.get("room").toUpperCase();
+$("#console-link").href = `/console/session/${encodeURIComponent($("#room-code").value)}`;
 if (params.get("autojoin") === "1") {
   $("#display-name").value = params.get("name") || "LocalRoom iOS";
   requestAnimationFrame(() => $("#join-form").requestSubmit());

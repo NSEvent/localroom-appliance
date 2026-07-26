@@ -1,12 +1,12 @@
 // Routing by parsing location.pathname manually (no router):
-//   /                     → host setup
-//   /session/{id}         → live console / end review
-//   /session/{id}?presenter=1 → presenter controls (never on the projector)
+//   /console/                     → resume live room or host setup
+//   /console/session/{id}         → live console / end review
+//   /console/session/{id}?presenter=1 → presenter controls
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import * as api from './api'
 import { Console } from './components/Console'
 import { HostSetup } from './components/HostSetup'
-import { JoinPage } from './components/JoinPage'
 import { PresenterControls } from './components/PresenterControls'
 import { SessionProvider } from './store'
 
@@ -14,11 +14,11 @@ type Theme = 'dark' | 'light'
 
 function useTheme(): [Theme, (t: Theme) => void] {
   const [theme, setThemeState] = useState<Theme>(() =>
-    localStorage.getItem('meety-theme') === 'light' ? 'light' : 'dark',
+    localStorage.getItem('localroom-theme') === 'light' ? 'light' : 'dark',
   )
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    localStorage.setItem('meety-theme', theme)
+    localStorage.setItem('localroom-theme', theme)
   }, [theme])
   return [theme, setThemeState]
 }
@@ -26,11 +26,10 @@ function useTheme(): [Theme, (t: Theme) => void] {
 interface Route {
   name: 'setup' | 'console' | 'presenter' | 'unknown'
   sessionId?: string
-  /** Present when a participant joined from their own device. */
-  sourceId?: string | null
 }
 
 function parseRoute(pathname: string, search: string): Route {
+  pathname = pathname.replace(/^\/console(?=\/|$)/, '') || '/'
   if (pathname === '/' || pathname === '' || pathname === '/host') {
     return { name: 'setup' }
   }
@@ -41,10 +40,39 @@ function parseRoute(pathname: string, search: string): Route {
     return {
       name: presenter ? 'presenter' : 'console',
       sessionId: m[1],
-      sourceId: q.get('source'),
     }
   }
   return { name: 'unknown' }
+}
+
+function ConsoleLanding({
+  navigate,
+  theme,
+  setTheme,
+}: {
+  navigate: (path: string) => void
+  theme: Theme
+  setTheme: (theme: Theme) => void
+}) {
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    api.getCurrentSession()
+      .then(({ session }) => {
+        if (cancelled) return
+        if (session?.id) navigate(`/session/${session.id}`)
+        else setChecking(false)
+      })
+      .catch(() => {
+        if (!cancelled) setChecking(false)
+      })
+    return () => { cancelled = true }
+  }, [navigate])
+
+  return checking
+    ? <div className="centered-note">Looking for a live room…</div>
+    : <HostSetup navigate={navigate} theme={theme} setTheme={setTheme} />
 }
 
 export default function App() {
@@ -59,23 +87,21 @@ export default function App() {
     return () => window.removeEventListener('popstate', onPop)
   }, [])
 
-  const navigate = (path: string) => {
-    history.pushState(null, '', path)
-    const [pathname, search = ''] = path.split('?')
+  const navigate = useCallback((path: string) => {
+    const target = path.startsWith('/console') ? path : `/console${path}`
+    history.pushState(null, '', target)
+    const [pathname, search = ''] = target.split('?')
     setRoute(parseRoute(pathname, search ? `?${search}` : ''))
-  }
+  }, [])
 
   switch (route.name) {
     case 'setup':
-      // Anyone opening the box's address lands here: it shows whether a
-      // meeting is live and lets them claim a name before streaming. The
-      // host's own setup screen is at /host.
-      return location.pathname === '/host'
+      return location.pathname === '/console/host'
         ? <HostSetup navigate={navigate} theme={theme} setTheme={setTheme} />
-        : <JoinPage navigate={navigate} />
+        : <ConsoleLanding navigate={navigate} theme={theme} setTheme={setTheme} />
     case 'console':
       return (
-        <SessionProvider sessionId={route.sessionId!} sourceId={route.sourceId}>
+        <SessionProvider sessionId={route.sessionId!}>
           <div className="app">
             <Console />
           </div>
@@ -93,7 +119,7 @@ export default function App() {
       return (
         <div className="app">
           <div className="centered-note">
-            Nothing here. <a href="/">Back to host setup</a>.
+            Nothing here. <a href="/console/">Back to host setup</a>.
           </div>
         </div>
       )

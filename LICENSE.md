@@ -4,10 +4,11 @@
 
 Required Notice: Copyright © 2026 Kevin Tang (https://kevintang.xyz)
 
-LocalRoom is source-available software. This license lets you read, build, and
-run it for **noncommercial** purposes (personal study, hobby use, evaluation).
-It does **not** permit commercial use, redistribution, or resale. For commercial
-licensing, contact <martini-doubler7g@icloud.com>.
+LocalRoom is source-available, commercial software. This license lets you read,
+build, and run it for **noncommercial** purposes (personal study, hobby use,
+evaluation). It does **not** permit commercial use, redistribution, or resale.
+To use LocalRoom commercially, buy a license at
+<https://thekevintang.gumroad.com/>.
 
 ## Acceptance
 

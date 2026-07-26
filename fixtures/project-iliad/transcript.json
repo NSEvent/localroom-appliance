@@ -1,0 +1,27 @@
+[
+  {
+    "id": "utt_demo_001",
+    "speaker": "Maya",
+    "text": "We decided that the cancellation experience will use a two-step guided flow with an immediate exit option."
+  },
+  {
+    "id": "utt_demo_002",
+    "speaker": "Maya",
+    "text": "I will send the revised two-step prototype to Legal by Friday."
+  },
+  {
+    "id": "utt_demo_003",
+    "speaker": "Jordan",
+    "text": "Someone should send the final cancellation specification to the outside vendor before Friday."
+  },
+  {
+    "id": "utt_demo_004",
+    "speaker": "Jordan",
+    "text": "Does Legal approve sharing the internal conversion analysis outside the company?"
+  },
+  {
+    "id": "utt_demo_005",
+    "speaker": "Maya",
+    "text": "Not today. Put the multi-page alternative in the parking lot."
+  }
+]

@@ -1,16 +1,25 @@
 {
-  "name": "localroom",
-  "version": "0.1.0",
+  "name": "localroom-appliance",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js",
-    "test": "node --test"
+    "build:console": "npm run build --prefix apps/console",
+    "check:no-cloud": "node scripts/no-cloud-check.js",
+    "check": "node --check server.js && node --check public/app.js && node --check meeting-record.js && node --check transcript-quality.js && npm run check:no-cloud && npm run lint --prefix apps/console && npm run build:console",
+    "test": "node --test test/*.test.js",
+    "test:e2e": "playwright test",
+    "test:ios": "xcodebuild -project apps/ios/LocalRoom.xcodeproj -scheme LocalRoom -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build-for-testing",
+    "demo:seed": "node scripts/seed-demo.js",
+    "gate": "npm run check && npm test && npm run test:e2e && npm run test:ios"
   },
   "dependencies": {
     "express": "^5.1.0",
     "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0"
   }
 }

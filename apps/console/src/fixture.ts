@@ -1,7 +1,3 @@
-// Bundled Brightline demo fixture: transcript.json plus the segment / HOLD /
-// checkpoint structure from meetings/demo-vendor-contract/script.md. Drives
-// the presenter-controls playback view and prefills the host-setup form.
-
 import transcript from './data/transcript.json'
 
 export interface FixtureUtterance {
@@ -14,44 +10,32 @@ export interface FixtureUtterance {
 
 export const UTTERANCES: FixtureUtterance[] = transcript.utterances
 
-// ---- host-setup defaults (script.md header) ----
-
 export const DEMO_DEFAULTS = {
-  title: 'Vendor Contract Review',
-  goal:
-    'Decide whether to approve the revised Brightline contract terms and assign owners for all remaining follow-up before end of week.',
+  title: 'Project Iliad Cancellation Review',
+  goal: 'Leave with a decision, a named owner, and no sensitive data outside the room.',
   participants: [
-    { name: 'Alex', role: 'Host / Operations' },
-    { name: 'Dana', role: 'Legal' },
-    { name: 'Priya', role: 'Finance' },
-    { name: 'Morgan', role: 'Vendor Owner' },
+    { name: 'Maya', role: 'Product' },
+    { name: 'Jordan', role: 'Legal' },
   ],
-  contextDir: 'meetings/demo-vendor-contract',
+  contextDir: 'data/corpus',
 }
 
-// ---- segments (script.md): 1 = utt_001–005, 2 = utt_006–016, 3 = utt_017–020 ----
-
 export interface Segment {
-  n: 1 | 2 | 3
+  n: number
   label: string
-  /** count of utterances posted when the segment is complete */
   end: number
 }
 
 export const SEGMENTS: Segment[] = [
-  { n: 1, label: 'Segment 1 · utt_001–005', end: 5 },
-  { n: 2, label: 'Segment 2 · utt_006–016', end: 16 },
-  { n: 3, label: 'Segment 3 · utt_017–020', end: 20 },
+  { n: 1, label: 'Decision + owner gap · moments 1–3', end: 3 },
+  { n: 2, label: 'Policy question + parking lot · moments 4–5', end: 5 },
 ]
 
 export function segmentFor(posted: number): Segment {
-  return SEGMENTS.find((s) => posted < s.end) ?? SEGMENTS[SEGMENTS.length - 1]
+  return SEGMENTS.find((segment) => posted < segment.end) ?? SEGMENTS.at(-1)!
 }
 
-// ---- pause boundaries: the driver stops at each HOLD / CHECKPOINT ----
-
 export interface Boundary {
-  /** utterance count at which playback pauses (utt_NNN with NNN === at is the last posted) */
   at: number
   kind: 'HOLD' | 'CHECKPOINT'
   name: string
@@ -60,69 +44,41 @@ export interface Boundary {
 
 export const BOUNDARIES: Boundary[] = [
   {
-    at: 4,
+    at: 3,
     kind: 'HOLD',
-    name: 'HOLD after utt_004',
-    cue: 'TRIGGER: unowned + urgent. Narrate the transcript 15–20 s; do not point at the unowned_action alert sooner than 25 s. Then advance — Dana takes it and the alert resolves live.',
+    name: 'MONEY SHOT · owner gap',
+    cue: 'Pause on the high-severity owner alert. Assign Jordan in the console and show the alert resolving across the room.',
   },
   {
     at: 5,
     kind: 'CHECKPOINT',
-    name: 'CHECKPOINT A',
-    cue: 'Verify against expected-state.md Checkpoint A: unowned_action fired after utt_004 and cleared after utt_005. Then advance into Segment 2.',
-  },
-  {
-    at: 8,
-    kind: 'HOLD',
-    name: 'HOLD after utt_008',
-    cue: 'TRIGGER: vague deadline ("soon"). Narrate 15–20 s; wait ≥25 s before pointing at the WHEN? chip / undated_action alert. Then advance.',
-  },
-  {
-    at: 15,
-    kind: 'HOLD',
-    name: 'HOLD after utt_015 — MONEY SHOT',
-    cue: 'MONEY SHOT: urgent Brightline reply, no owner. The high-severity unowned_action alert is the demo. Narrate 15–20 s; do not point sooner than 25 s. Then advance (Alex punts — item stays unowned).',
-  },
-  {
-    at: 16,
-    kind: 'CHECKPOINT',
-    name: 'CHECKPOINT B',
-    cue: 'On-stage: type "What is still unresolved?" in the Q&A and narrate while tokens stream; then click Closing Sweep — expect unowned Brightline message (high), vague forecast deadline, open counsel question. Then advance into Segment 3.',
-  },
-  {
-    at: 20,
-    kind: 'CHECKPOINT',
-    name: 'CHECKPOINT C — end',
-    cue: 'All utterances posted. End the meeting → final review → Export Markdown. Compare against expected-state.md Checkpoint C.',
+    name: 'CLOSING SWEEP',
+    cue: 'Ask what is unresolved, run Closing Sweep, then export the local brief. The open Legal question must remain visible.',
   },
 ]
 
-/** Seed-to-checkpoint targets (crash recovery <10 s). */
-export const CHECKPOINT_SEEDS = [
-  { label: 'A · after utt_005', count: 5 },
-  { label: 'B · after utt_016', count: 16 },
-  { label: 'C · after utt_020', count: 20 },
-] as const
-
 export function nextBoundary(posted: number): Boundary | null {
-  return BOUNDARIES.find((b) => b.at > posted) ?? null
+  return BOUNDARIES.find((boundary) => boundary.at > posted) ?? null
 }
 
-/** The cue to show for the current position (the boundary we are sitting on,
- * or the next one coming up). */
+export const CHECKPOINT_SEEDS = [
+  { label: 'Owner gap · after moment 3', count: 3 },
+  { label: 'Full judge flow · all 5 moments', count: 5 },
+] as const
+
 export function cueFor(posted: number): { title: string; text: string } {
-  const here = BOUNDARIES.find((b) => b.at === posted)
+  const here = BOUNDARIES.find((boundary) => boundary.at === posted)
   if (here) return { title: `${here.name} — you are here`, text: here.cue }
   const next = nextBoundary(posted)
   if (!next) {
     return {
-      title: 'Script complete',
-      text: 'All 20 utterances posted. End the meeting and walk the final review.',
+      title: 'Judge flow complete',
+      text: 'Run Closing Sweep, resolve the last gap, and export the private meeting record.',
     }
   }
   const remaining = next.at - posted
   return {
-    title: `Next stop: ${next.name} (${remaining} utterance${remaining === 1 ? '' : 's'} away)`,
+    title: `Next stop: ${next.name} (${remaining} moment${remaining === 1 ? '' : 's'} away)`,
     text: next.cue,
   }
 }
