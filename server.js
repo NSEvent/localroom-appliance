@@ -2,58 +2,117 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
-import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { WebSocketServer } from "ws";
 import express from "express";
 import { selectSpeakerCandidate } from "./audio-arbitration.js";
+import { answerFromMemory, demoMemory, RoomIntelligence } from "./localroom-core.js";
+import { AuditTrail, LocalModelService, LocalSpeechService } from "./local-services.js";
+import { WorkspaceActions } from "./workspace-actions.js";
+import { corpusStats } from "./corpus-index.js";
 
 const PORT = Number(process.env.PORT || 4173);
 const ASR_URL = (process.env.ASR_URL || "http://172.16.10.189:8001").replace(/\/$/, "");
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
-const rooms = new Map();
+const DATA_DIR = process.env.LOCALROOM_DATA_DIR || path.join(import.meta.dirname, "data");
+const GENERATED_DIR = path.join(DATA_DIR, "generated");
+const intelligence = new RoomIntelligence();
+const models = new LocalModelService();
+const speech = new LocalSpeechService({ outputDir: GENERATED_DIR });
+const audit = new AuditTrail(path.join(DATA_DIR, "audit.jsonl"));
+const workspace = new WorkspaceActions(path.join(DATA_DIR, "workspace"));
 const pendingAudioWindows = new Map();
+let modelCatalog = [];
+const voiceCatalog = [
+  { id: "af_heart", label: "Heart", role: "Warm facilitator" },
+  { id: "af_bella", label: "Bella", role: "Clear analyst" },
+  { id: "am_michael", label: "Michael", role: "Composed advisor" },
+  { id: "am_adam", label: "Adam", role: "Direct operator" },
+];
 
 const app = express();
 app.disable("x-powered-by");
 app.use(express.static(path.join(import.meta.dirname, "public")));
+app.use("/generated", express.static(GENERATED_DIR, { maxAge: "1h" }));
+app.use("/api", express.json({ limit: "1mb" }));
+
 app.get("/localroom-ca.pem", (_request, response) => {
   const certificate = process.env.CA_CERT_PATH;
-  if (!certificate || !fs.existsSync(certificate)) {
-    return response.status(404).send("Certificate setup is not enabled.");
-  }
+  if (!certificate || !fs.existsSync(certificate)) return response.status(404).send("Certificate setup is not enabled.");
   response.download(certificate, "localroom-ca.pem");
 });
+
 app.get("/health", async (_request, response) => {
+  const [asr, availableModels] = await Promise.all([asrHealth(), models.models()]);
+  modelCatalog = availableModels;
+  response.json({
+    status: "ok",
+    local: true,
+    cloudEgressBytes: 0,
+    asr,
+    models: availableModels,
+    voices: voiceCatalog,
+    auditRecords: audit.read(500).length,
+    memoryRecords: demoMemory.length + corpusStats(DATA_DIR).records,
+    corpus: corpusStats(DATA_DIR),
+    commitmentMonitor: workspace.monitor(),
+  });
+});
+
+app.get("/api/rooms/:roomId", (request, response) => {
+  response.json(intelligence.snapshot(clean(request.params.roomId, 80)));
+});
+
+app.get("/api/memory", (_request, response) => response.json(demoMemory));
+app.get("/api/audit", (_request, response) => response.json(audit.read()));
+
+app.post("/api/demo/caption", (request, response) => {
+  const roomId = clean(request.body.roomId, 80);
+  const caption = makeCaption({
+    participantId: clean(request.body.participantId, 80) || "demo-speaker",
+    name: clean(request.body.name, 50) || "Maya Chen",
+    text: cleanText(request.body.text, 1200),
+    latencyMs: 218,
+    attributionConfidence: 0.98,
+  });
+  publishCaption(roomId, caption);
+  response.json({ caption, room: intelligence.snapshot(roomId) });
+});
+
+app.post("/api/rooms/:roomId/agent", async (request, response) => {
+  const roomId = clean(request.params.roomId, 80);
+  const question = cleanText(request.body.question, 1000);
+  const actorName = clean(request.body.actorName, 50) || "Participant";
+  if (!question) return response.status(400).json({ error: "Question required" });
   try {
-    const upstream = await fetch(`${ASR_URL}/health`, { signal: AbortSignal.timeout(1800) });
-    response.json({
-      status: "ok",
-      local: true,
-      asr: upstream.ok ? await upstream.json() : { status: "unavailable" },
-    });
-  } catch {
-    response.json({ status: "ok", local: true, asr: { status: "offline" } });
+    const result = await answerAgent(roomId, question, actorName);
+    response.json(result);
+  } catch (error) {
+    response.status(502).json({ error: error.message });
   }
+});
+
+app.post("/api/rooms/:roomId/end", (request, response) => {
+  const roomId = clean(request.params.roomId, 80);
+  const brief = intelligence.endMeeting(roomId, clean(request.body.actorName, 50) || "Organizer");
+  brief.artifacts = workspace.execute(roomId, brief);
+  audit.append({ kind: "agent_run", status: "completed", actor: "LocalRoom Agent", action: "meeting-handoff", roomId });
+  broadcast(roomId, { type: "meeting-ended", brief, room: intelligence.snapshot(roomId) });
+  response.json(brief);
 });
 
 app.post("/api/transcribe", express.raw({ type: "*/*", limit: MAX_AUDIO_BYTES }), async (request, response) => {
   const participantId = clean(request.header("x-participant-id"), 80);
   const roomId = clean(request.header("x-room-id"), 80);
-  const participant = rooms.get(roomId)?.get(participantId);
+  const participant = intelligence.room(roomId).participants.get(participantId);
   if (!participant || !Buffer.isBuffer(request.body) || request.body.length < 512) {
     return response.status(400).json({ error: "Invalid audio stream." });
   }
-
   try {
     const wav = await normalizeAudio(request.body);
     queueAudioCandidate({
-      roomId,
-      participantId,
-      participant,
-      wav,
-      response,
+      roomId, participantId, participant, wav, response,
       started: performance.now(),
       windowId: clean(request.header("x-audio-window"), 30),
       snrDb: Number(request.header("x-audio-snr-db")),
@@ -63,12 +122,163 @@ app.post("/api/transcribe", express.raw({ type: "*/*", limit: MAX_AUDIO_BYTES })
   }
 });
 
+const tlsKey = process.env.TLS_KEY;
+const tlsCert = process.env.TLS_CERT;
+const server = tlsKey && tlsCert
+  ? https.createServer({ key: fs.readFileSync(tlsKey), cert: fs.readFileSync(tlsCert) }, app)
+  : http.createServer(app);
+const wss = new WebSocketServer({ server, path: "/signal" });
+
+wss.on("connection", (socket, request) => {
+  socket.clientAddress = request.socket.remoteAddress;
+  socket.isAlive = true;
+  socket.on("pong", () => { socket.isAlive = true; });
+  socket.on("message", (data) => handleSocketMessage(socket, data));
+  socket.on("close", () => removeSocket(socket));
+});
+
+async function handleSocketMessage(socket, data) {
+  let message;
+  try { message = JSON.parse(data); } catch { return; }
+  if (message.type === "join") return joinRoom(socket, message);
+  const meta = socket.meta;
+  if (!meta) return;
+  if (message.type === "signal" && message.to) {
+    const target = intelligence.room(meta.roomId).participants.get(clean(message.to, 80));
+    target?.socket.send(JSON.stringify({ type: "signal", from: meta.id, data: message.data }));
+  } else if (message.type === "state") {
+    updateParticipantState(meta, message);
+  } else if (message.type === "reaction") {
+    broadcast(meta.roomId, { type: "reaction", from: meta.id, emoji: allowedEmoji(message.emoji) });
+  } else if (message.type === "card-action") {
+    await resolveCard(meta, message);
+  } else if (message.type === "select-model") {
+    await selectModel(meta, message.modelId);
+  } else if (message.type === "select-voice") {
+    selectVoice(meta, message.voiceId);
+  }
+}
+
+function joinRoom(socket, message) {
+  const roomId = clean(message.roomId, 80);
+  const id = clean(message.id, 80);
+  const name = clean(message.name, 50) || "Guest";
+  if (!roomId || !id) return;
+  socket.meta = { roomId, id, name };
+  const room = intelligence.room(roomId);
+  const existing = [...room.participants.values()].map(publicParticipant);
+  intelligence.addParticipant(roomId, { id, name, muted: false, cameraOff: false, socket });
+  socket.send(JSON.stringify({
+    type: "welcome",
+    participants: existing,
+    room: intelligence.snapshot(roomId),
+    models: modelCatalog,
+    voices: voiceCatalog,
+    memory: demoMemory,
+  }));
+  broadcast(roomId, { type: "participant-joined", participant: { id, name } }, id);
+  broadcastRoom(roomId);
+}
+
+async function resolveCard(meta, message) {
+  const result = intelligence.resolve(meta.roomId, {
+    cardId: clean(message.cardId, 80),
+    version: Number(message.version),
+    action: clean(message.action, 80),
+    actorId: meta.id,
+    actorName: meta.name,
+  });
+  if (!result.ok) {
+    return sendTo(meta.id, meta.roomId, { type: "card-conflict", reason: result.reason, card: result.card });
+  }
+  const card = result.card;
+  audit.append({
+    kind: card.type === "security" ? "tool_action" : "agent_run",
+    status: card.type === "security" ? "blocked" : "completed",
+    actor: meta.name,
+    action: message.action,
+    cardId: card.id,
+    roomId: meta.roomId,
+    redaction: "metadata_only",
+  });
+  broadcastRoom(meta.roomId);
+  if (card.type === "security") {
+    const proof = await audit.proveBlockedEgress();
+    broadcast(meta.roomId, { type: "security-proof", proof });
+  }
+}
+
+async function selectModel(meta, modelId) {
+  if (!modelCatalog.length) modelCatalog = await models.models();
+  const result = intelligence.selectModel(meta.roomId, clean(modelId, 80), meta.name, modelCatalog);
+  if (!result.ok) return sendTo(meta.id, meta.roomId, { type: "model-error", reason: result.reason });
+  broadcastRoom(meta.roomId);
+}
+
+function selectVoice(meta, voiceId) {
+  const result = intelligence.selectVoice(meta.roomId, clean(voiceId, 80), meta.name, voiceCatalog);
+  if (!result.ok) return sendTo(meta.id, meta.roomId, { type: "voice-error", reason: result.reason });
+  broadcastRoom(meta.roomId);
+}
+
+async function answerAgent(roomId, question, actorName) {
+  const room = intelligence.room(roomId);
+  broadcast(roomId, { type: "agent-status", status: "thinking", question, actorName });
+  let answer = answerFromMemory(question);
+  let modelInfo = { model: room.model, latencyMs: 34, grounded: true };
+  if (!answer) {
+    const transcript = room.captions.slice(-16).map((item) => `${item.name}: ${item.text}`).join("\n");
+    const memory = demoMemory.map((page) =>
+      `[[${page.slug}]] ${page.summary}\n${page.facts.join("\n")}`).join("\n\n");
+    const result = await models.answer(room.model, { question, transcript, memory });
+    answer = { answer: result.text, citations: extractCitations(result.text) };
+    modelInfo = result;
+  }
+  const event = {
+    type: "agent-answer",
+    id: crypto.randomUUID(),
+    name: "LocalRoom Agent",
+    question,
+    text: answer.answer,
+    citations: answer.citations,
+    at: new Date().toISOString(),
+    ...modelInfo,
+  };
+  try { event.audioURL = await speech.synthesize(event.text, room.voice); } catch { event.audioURL = null; }
+  intelligence.addCaption(roomId, makeCaption({
+    id: event.id,
+    participantId: "localroom-agent",
+    name: "LocalRoom Agent",
+    text: event.text,
+    latencyMs: event.latencyMs,
+    attributionConfidence: 1,
+    source: "agent",
+  }));
+  intelligence.room(roomId).timeline.unshift({
+    id: event.id, at: event.at, kind: "agent",
+    title: `Answered ${actorName}'s question`, actor: "LocalRoom Agent",
+  });
+  audit.append({ kind: "agent_run", status: "completed", actor: "LocalRoom Agent", action: "answer", roomId, model: event.model });
+  broadcast(roomId, event);
+  broadcastRoom(roomId);
+  return event;
+}
+
+function publishCaption(roomId, caption) {
+  const proposals = intelligence.addCaption(roomId, caption);
+  broadcast(roomId, caption);
+  if (proposals.length) broadcastRoom(roomId);
+  if (/^\s*(?:local ?room|room agent)[,\s]/i.test(caption.text)) {
+    const question = caption.text.replace(/^\s*(?:local ?room|room agent)[,\s]*/i, "");
+    answerAgent(roomId, question, caption.name).catch((error) =>
+      broadcast(roomId, { type: "agent-error", message: error.message }));
+  }
+}
+
 function queueAudioCandidate(candidate) {
   const serverWindow = Math.floor(Date.now() / 2000);
   const clientWindow = Number(candidate.windowId);
-  const safeWindow = Number.isFinite(clientWindow) && Math.abs(clientWindow - serverWindow) <= 1
-    ? clientWindow
-    : serverWindow;
+  const safeWindow = Number.isFinite(clientWindow) && Math.abs(clientWindow - serverWindow) <= 1 ? clientWindow : serverWindow;
   const key = `${candidate.roomId}:${safeWindow}`;
   let pending = pendingAudioWindows.get(key);
   if (!pending) {
@@ -83,105 +293,64 @@ async function flushAudioWindow(key) {
   if (!pending) return;
   pendingAudioWindows.delete(key);
   const selection = selectSpeakerCandidate(pending.candidates);
-
   for (const candidate of pending.candidates) {
     if (candidate !== selection.winner && !candidate.response.headersSent) {
-      candidate.response.json({
-        suppressed: true,
-        reason: selection.reason,
-        confidence: selection.confidence,
-      });
+      candidate.response.json({ suppressed: true, reason: selection.reason, confidence: selection.confidence });
     }
   }
-  if (!selection.winner) {
-    console.log(`audio arbitration ${key} suppressed=${selection.reason}`);
-    return;
-  }
-
+  if (!selection.winner) return;
   const winner = selection.winner;
   try {
     const form = new FormData();
     form.append("file", new Blob([winner.wav], { type: "audio/wav" }), `${winner.participantId}.wav`);
-    const upstream = await fetch(`${ASR_URL}/transcribe`, {
-      method: "POST",
-      body: form,
-      signal: AbortSignal.timeout(20_000),
-    });
+    const upstream = await fetch(`${ASR_URL}/transcribe`, { method: "POST", body: form, signal: AbortSignal.timeout(20_000) });
     if (!upstream.ok) throw new Error(`ASR ${upstream.status}`);
     const result = await upstream.json();
-    const text = String(result.text || "").trim();
-    const event = {
-      type: "caption",
-      id: crypto.randomUUID(),
+    const caption = makeCaption({
       participantId: winner.participantId,
       name: winner.participant.name,
-      text,
-      at: new Date().toISOString(),
+      text: String(result.text || "").trim(),
       latencyMs: Math.round(performance.now() - winner.started),
       attributionConfidence: selection.confidence,
       separationDb: selection.separationDb,
-    };
-    if (text) broadcast(winner.roomId, event);
-    winner.response.json(event);
+    });
+    if (caption.text) publishCaption(winner.roomId, caption);
+    winner.response.json(caption);
   } catch (error) {
     winner.response.status(502).json({ error: "Dell ASR unavailable", detail: error.message });
   }
 }
 
-const tlsKey = process.env.TLS_KEY;
-const tlsCert = process.env.TLS_CERT;
-const server = tlsKey && tlsCert
-  ? https.createServer({ key: fs.readFileSync(tlsKey), cert: fs.readFileSync(tlsCert) }, app)
-  : http.createServer(app);
-const wss = new WebSocketServer({ server, path: "/signal" });
+function updateParticipantState(meta, message) {
+  const participant = intelligence.room(meta.roomId).participants.get(meta.id);
+  if (!participant) return;
+  participant.muted = Boolean(message.muted);
+  participant.cameraOff = Boolean(message.cameraOff);
+  broadcastRoom(meta.roomId);
+}
 
-wss.on("connection", (socket, request) => {
-  socket.clientAddress = request.socket.remoteAddress;
-  socket.isAlive = true;
-  socket.on("pong", () => { socket.isAlive = true; });
-  socket.on("message", (data) => {
-    let message;
-    try { message = JSON.parse(data); } catch { return; }
+function broadcastRoom(roomId) {
+  broadcast(roomId, { type: "room-state", room: intelligence.snapshot(roomId) });
+}
 
-    if (message.type === "join") {
-      const roomId = clean(message.roomId, 80);
-      const id = clean(message.id, 80);
-      const name = clean(message.name, 50) || "Guest";
-      if (!roomId || !id) return;
-      socket.meta = { roomId, id };
-      if (!rooms.has(roomId)) rooms.set(roomId, new Map());
-      const room = rooms.get(roomId);
-      const existing = [...room.values()].map(publicParticipant);
-      room.set(id, { id, name, muted: false, cameraOff: false, socket });
-      console.log(`join room=${roomId} participant=${name} address=${socket.clientAddress}`);
-      socket.send(JSON.stringify({ type: "welcome", participants: existing }));
-      broadcast(roomId, { type: "participant-joined", participant: { id, name } }, id);
-      broadcastRoster(roomId);
-      return;
-    }
+function broadcast(roomId, payload, exceptId) {
+  for (const participant of intelligence.room(roomId).participants.values()) {
+    if (participant.id !== exceptId && participant.socket.readyState === 1) participant.socket.send(JSON.stringify(payload));
+  }
+}
 
-    const meta = socket.meta;
-    if (!meta) return;
-    if (message.type === "signal" && message.to) {
-      const target = rooms.get(meta.roomId)?.get(clean(message.to, 80));
-      target?.socket.send(JSON.stringify({ type: "signal", from: meta.id, data: message.data }));
-    } else if (message.type === "state") {
-      const participant = rooms.get(meta.roomId)?.get(meta.id);
-      if (participant) {
-        participant.muted = Boolean(message.muted);
-        participant.cameraOff = Boolean(message.cameraOff);
-        broadcastRoster(meta.roomId);
-      }
-    } else if (message.type === "reaction") {
-      broadcast(meta.roomId, {
-        type: "reaction",
-        from: meta.id,
-        emoji: ["👏", "👍", "❤️"].includes(message.emoji) ? message.emoji : "👏",
-      });
-    }
-  });
-  socket.on("close", () => removeSocket(socket));
-});
+function sendTo(participantId, roomId, payload) {
+  const participant = intelligence.room(roomId).participants.get(participantId);
+  if (participant?.socket.readyState === 1) participant.socket.send(JSON.stringify(payload));
+}
+
+function removeSocket(socket) {
+  const meta = socket.meta;
+  if (!meta) return;
+  intelligence.removeParticipant(meta.roomId, meta.id);
+  broadcast(meta.roomId, { type: "participant-left", id: meta.id });
+  broadcastRoom(meta.roomId);
+}
 
 setInterval(() => {
   for (const socket of wss.clients) {
@@ -191,63 +360,61 @@ setInterval(() => {
   }
 }, 25_000).unref();
 
-server.listen(PORT, "0.0.0.0", () => {
-  const protocol = tlsKey && tlsCert ? "https" : "http";
-  console.log(`LocalRoom ready at ${protocol}://localhost:${PORT}`);
-  console.log(`Dell ASR: ${ASR_URL}`);
+setInterval(() => {
+  const monitor = workspace.monitor();
+  if (monitor.commitments) {
+    audit.append({
+      kind: "agent_run", status: "completed", actor: "LocalRoom Agent",
+      action: "commitment-monitor-sweep", commitments: monitor.commitments,
+    });
+  }
+}, 60_000).unref();
+
+server.listen(PORT, "0.0.0.0", async () => {
+  modelCatalog = await models.models();
+  console.log(`LocalRoom ready at ${tlsKey && tlsCert ? "https" : "http"}://localhost:${PORT}`);
+  console.log(`Dell ASR: ${ASR_URL}; local models: ${modelCatalog.filter((model) => model.available).map((model) => model.label).join(", ") || "probing"}`);
 });
 
-function clean(value, length) {
-  return String(value || "").replace(/[^\w .@-]/g, "").slice(0, length);
-}
-
-function publicParticipant({ id, name, muted, cameraOff }) {
-  return { id, name, muted, cameraOff };
-}
-
-function broadcast(roomId, payload, exceptId) {
-  for (const participant of rooms.get(roomId)?.values() || []) {
-    if (participant.id !== exceptId && participant.socket.readyState === 1) {
-      participant.socket.send(JSON.stringify(payload));
-    }
+async function asrHealth() {
+  try {
+    const upstream = await fetch(`${ASR_URL}/health`, { signal: AbortSignal.timeout(1800) });
+    return upstream.ok ? await upstream.json() : { status: "unavailable" };
+  } catch {
+    return { status: "offline" };
   }
 }
 
-function broadcastRoster(roomId) {
-  const room = rooms.get(roomId);
-  if (!room) return;
-  broadcast(roomId, { type: "roster", participants: [...room.values()].map(publicParticipant) });
-}
-
-function removeSocket(socket) {
-  const meta = socket.meta;
-  if (!meta) return;
-  const room = rooms.get(meta.roomId);
-  console.log(`leave room=${meta.roomId} participant=${meta.id} address=${socket.clientAddress}`);
-  room?.delete(meta.id);
-  broadcast(meta.roomId, { type: "participant-left", id: meta.id });
-  if (room?.size) broadcastRoster(meta.roomId);
-  else rooms.delete(meta.roomId);
+function makeCaption(values) {
+  return { type: "caption", id: crypto.randomUUID(), at: new Date().toISOString(), ...values };
 }
 
 function normalizeAudio(input) {
-  if (input.subarray(0, 4).toString("ascii") === "RIFF"
-      && input.subarray(8, 12).toString("ascii") === "WAVE") {
-    return Promise.resolve(input);
-  }
+  if (input.subarray(0, 4).toString("ascii") === "RIFF" && input.subarray(8, 12).toString("ascii") === "WAVE") return Promise.resolve(input);
   return new Promise((resolve, reject) => {
     const chunks = [];
-    const ffmpeg = spawn("ffmpeg", [
-      "-hide_banner", "-loglevel", "error", "-i", "pipe:0",
-      "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-f", "wav", "pipe:1",
-    ]);
+    const ffmpeg = spawn("ffmpeg", ["-hide_banner", "-loglevel", "error", "-i", "pipe:0", "-ac", "1", "-ar", "16000", "-c:a", "pcm_s16le", "-f", "wav", "pipe:1"]);
     let errors = "";
     ffmpeg.stdout.on("data", (chunk) => chunks.push(chunk));
     ffmpeg.stderr.on("data", (chunk) => { errors += chunk; });
-    ffmpeg.on("error", () => reject(new Error("Unsupported audio format; browser must send WAV")));
-    ffmpeg.on("close", (code) => code === 0
-      ? resolve(Buffer.concat(chunks))
-      : reject(new Error(errors.trim() || `ffmpeg exited ${code}`)));
+    ffmpeg.on("error", () => reject(new Error("Unsupported audio format")));
+    ffmpeg.on("close", (code) => code === 0 ? resolve(Buffer.concat(chunks)) : reject(new Error(errors.trim() || `ffmpeg exited ${code}`)));
     ffmpeg.stdin.end(input);
   });
+}
+
+function clean(value, length) {
+  return String(value || "").replace(/[^\w .@:/-]/g, "").slice(0, length);
+}
+function cleanText(value, length) {
+  return String(value || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, length);
+}
+function publicParticipant({ socket: _socket, ...participant }) {
+  return participant;
+}
+function allowedEmoji(value) {
+  return ["👏", "👍", "❤️"].includes(value) ? value : "👏";
+}
+function extractCitations(text) {
+  return [...text.matchAll(/\[\[([^\]]+)\]\]/g)].map((match) => `[[${match[1]}]]`);
 }

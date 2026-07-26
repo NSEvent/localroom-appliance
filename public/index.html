@@ -1,89 +1,156 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0c0f0e">
-  <meta name="description" content="Private, local-first meetings with speaker-attributed AI transcription.">
-  <title>LocalRoom — Private meetings, intelligent outcomes</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#090b0a">
+	<meta name="description" content="A private AI participant for meetings that cannot leave the room.">
+	<title>LocalRoom — The meeting agent that stays in the room</title>
+	<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div id="lobby" class="lobby">
-    <div class="lobby-brand"><span class="brand-mark">L</span><span>LocalRoom</span></div>
-    <main class="lobby-card">
-      <div class="eyebrow"><span class="pulse"></span> Dell Pro AI appliance ready</div>
-      <h1>Private meetings.<br><em>Intelligent outcomes.</em></h1>
-      <p>Zoom-grade collaboration with live, speaker-attributed transcription—processed entirely on your local Dell AI PC.</p>
-      <form id="join-form">
-        <label>Your name<input id="display-name" required maxlength="50" autocomplete="name" placeholder="e.g. Maya Chen"></label>
-        <label>Meeting code<input id="room-code" required maxlength="30" value="DELL-DEMO" spellcheck="false"></label>
-        <button type="submit">Join secure meeting <span>→</span></button>
-      </form>
-      <div class="trust-row"><span>● Local inference</span><span>● No cloud recording</span><span>● Encrypted media</span></div>
-      <a class="setup-link" href="/setup.html">Joining from Windows? One-time setup →</a>
-    </main>
-    <div class="lobby-aside">
-      <div class="architecture">
-        <div class="node browser-node">BROWSER<span>isolated mic</span></div>
-        <div class="flow"><i></i><b>LAN ONLY</b><i></i></div>
-        <div class="node dell-node">DELL PRO<span>NVIDIA ASR</span></div>
-      </div>
-      <p>Your words stay in the room.</p>
-    </div>
-  </div>
+	<div id="lobby" class="lobby">
+		<div class="lobby-brand"><span class="brand-mark">L</span><span>LocalRoom</span></div>
+		<main class="lobby-card">
+			<div class="eyebrow"><span class="pulse"></span> Dell Pro AI appliance ready</div>
+			<h1>The intelligence<br><em>stays in the room.</em></h1>
+			<p>A private AI participant that remembers decisions, governs sensitive actions, and keeps working after the meeting ends.</p>
+			<form id="join-form">
+				<label>Your name<input id="display-name" required maxlength="50" autocomplete="name" placeholder="e.g. Maya Chen"></label>
+				<label>Meeting code<input id="room-code" required maxlength="30" value="DELL-DEMO" spellcheck="false"></label>
+				<button type="submit">Enter private workspace <span>→</span></button>
+			</form>
+			<div class="trust-row"><span>● Local models</span><span>● Governed actions</span><span>● Zero cloud recording</span></div>
+			<a class="setup-link" href="/setup.html">Joining from Windows? One-time setup →</a>
+		</main>
+		<aside class="lobby-aside">
+			<div class="appliance-orbit">
+				<div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+				<div class="appliance-core"><span>DELL</span><b>LOCAL AI</b><small>ALWAYS ON</small></div>
+				<span class="satellite sat-one">MEET</span><span class="satellite sat-two">REMEMBER</span><span class="satellite sat-three">ACT</span>
+			</div>
+			<blockquote>“Cloud AI is not disabled.<br>It is absent.”</blockquote>
+		</aside>
+	</div>
 
-  <div id="meeting" class="meeting hidden">
-    <header>
-      <div class="meeting-brand"><span class="brand-mark">L</span><b>LocalRoom</b></div>
-      <div class="meeting-title"><b>Flight Systems Design Review</b><span id="meeting-code-label">DELL-DEMO</span></div>
-      <div class="meeting-status"><span id="clock">00:00</span><span class="secure-pill"><i></i> Local & secure</span></div>
-    </header>
+	<div id="meeting" class="meeting hidden">
+		<header>
+			<div class="meeting-brand"><span class="brand-mark">L</span><b>LocalRoom</b><span class="org-label">RAINFOREST · PRIVATE</span></div>
+			<div class="meeting-title"><b id="meeting-title">Project Iliad Cancellation Review</b><span id="meeting-code-label">DELL-DEMO</span></div>
+			<div class="meeting-status"><span id="clock">00:00</span><span class="secure-pill"><i></i> 0 B CLOUD EGRESS</span></div>
+		</header>
 
-    <main class="meeting-main">
-      <section class="stage">
-        <div id="video-grid" class="video-grid"></div>
-        <div id="reaction-layer" class="reaction-layer"></div>
-        <div class="caption-overlay hidden" id="caption-overlay"><b id="caption-speaker"></b><span id="caption-text"></span></div>
-      </section>
+		<main class="meeting-main">
+			<section class="stage">
+				<div id="video-grid" class="video-grid"></div>
+				<article id="agent-tile" class="agent-tile">
+					<div class="agent-visual"><span class="agent-halo"></span><b>L</b></div>
+					<div><span>LOCALROOM AGENT</span><strong id="agent-state">Listening</strong></div>
+					<small id="agent-model-chip">Qwen 3 · 30B</small>
+				</article>
+				<div id="reaction-layer" class="reaction-layer"></div>
+				<div class="caption-overlay hidden" id="caption-overlay"><b id="caption-speaker"></b><span id="caption-text"></span></div>
 
-      <aside class="intelligence-panel">
-        <div class="panel-head">
-          <div><span>MEETING INTELLIGENCE</span><h2>Live transcript</h2></div>
-          <button id="close-panel" aria-label="Close transcript panel">×</button>
-        </div>
-        <div class="privacy-proof">
-          <div class="proof-icon">⌁</div>
-          <div><b>Processing on Dell Pro</b><span id="model-label">NVIDIA Parakeet · checking…</span></div>
-          <span class="live-tag">LIVE</span>
-        </div>
-        <div id="transcript" class="transcript">
-          <div class="empty-state"><span>⌁</span><b>Listening locally</b><p>Speaker-attributed notes will appear here. Nothing leaves this network.</p></div>
-        </div>
-        <div class="insight-card">
-          <div class="insight-title"><span>✦</span> AI MEETING BRIEF <b>LOCAL</b></div>
-          <p id="meeting-brief">Waiting for the conversation to begin. Key decisions and action items will collect here.</p>
-        </div>
-      </aside>
-    </main>
+				<section id="shared-card" class="shared-card hidden" aria-live="assertive">
+					<div class="card-chrome">
+						<span id="card-icon">✦</span><span id="card-eyebrow">DECISION DETECTED</span>
+						<b id="card-confidence">94% CONFIDENCE</b>
+					</div>
+					<h2 id="card-title"></h2>
+					<p id="card-detail"></p>
+					<blockquote id="card-evidence"></blockquote>
+					<div id="poll-results" class="poll-results hidden"></div>
+					<div id="card-actions" class="card-actions"></div>
+					<small class="shared-note">Shared room state · first valid action resolves for everyone</small>
+				</section>
+			</section>
 
-    <footer>
-      <div class="footer-left"><span id="participant-count">1 participant</span><span class="network-quality"><i></i> Excellent</span></div>
-      <div class="controls">
-        <button id="mic-button" class="control" aria-label="Mute microphone"><span>♩</span><small>Mute</small></button>
-        <button id="camera-button" class="control" aria-label="Turn camera off"><span>▣</span><small>Camera</small></button>
-        <button id="share-button" class="control" aria-label="Share meeting link"><span>↥</span><small>Invite</small></button>
-        <button id="reaction-button" class="control" aria-label="Applaud"><span>♧</span><small>React</small></button>
-        <button id="transcript-button" class="control active" aria-label="Toggle transcript"><span>≡</span><small>Transcript</small></button>
-        <button id="leave-button" class="leave">Leave</button>
-      </div>
-      <div class="footer-right"><span id="asr-dot"></span><b id="asr-state">Connecting to local AI</b></div>
-    </footer>
-  </div>
-  <div id="toast" class="toast"></div>
-  <script type="module" src="/app.js"></script>
+			<aside class="intelligence-panel">
+				<div class="panel-head">
+					<div><span>ROOM INTELLIGENCE</span><h2>Live workspace</h2></div>
+					<button id="close-panel" aria-label="Close workspace">×</button>
+				</div>
+				<nav class="panel-tabs">
+					<button class="active" data-tab="transcript">Transcript</button>
+					<button data-tab="memory">Memory</button>
+					<button data-tab="activity">Activity</button>
+				</nav>
+
+				<section id="tab-transcript" class="tab-pane active">
+					<div class="privacy-proof">
+						<div class="proof-icon">⌁</div>
+						<div><b id="local-proof-title">Processing on Dell Pro</b><span id="model-label">NVIDIA Parakeet · checking…</span></div>
+						<span class="live-tag">LOCAL</span>
+					</div>
+					<div id="transcript" class="transcript">
+						<div class="empty-state"><span>⌁</span><b>Listening locally</b><p>Speaker-attributed notes and decisions will appear here.</p></div>
+					</div>
+				</section>
+
+				<section id="tab-memory" class="tab-pane">
+					<div class="memory-search"><span>⌕</span><input id="memory-search" placeholder="Search institutional memory"></div>
+					<div id="memory-pages" class="memory-pages"></div>
+				</section>
+
+				<section id="tab-activity" class="tab-pane">
+					<div class="metrics">
+						<div><b id="metric-commitments">7</b><span>monitored</span></div>
+						<div><b id="metric-blocked">1</b><span>blocked</span></div>
+						<div><b id="metric-memory">42</b><span>memories</span></div>
+					</div>
+					<div id="timeline" class="timeline"></div>
+				</section>
+
+				<form id="ask-form" class="ask-agent">
+					<span>✦</span><input id="agent-question" autocomplete="off" placeholder="Ask the room agent…">
+					<button aria-label="Ask agent">↑</button>
+				</form>
+
+				<div class="model-switcher">
+					<button id="model-button"><span><i></i><b id="selected-model">Qwen 3 · 30B</b></span><small>Change local model⌄</small></button>
+					<div id="model-menu" class="model-menu hidden"></div>
+					<button id="voice-button"><span><i class="voice-dot"></i><b id="selected-voice">Heart</b></span><small>Change agent voice⌄</small></button>
+					<div id="voice-menu" class="model-menu voice-menu hidden"></div>
+				</div>
+			</aside>
+		</main>
+
+		<footer>
+			<div class="footer-left"><span id="participant-count">1 participant + agent</span><span class="network-quality"><i></i> LAN excellent</span></div>
+			<div class="controls">
+				<button id="mic-button" class="control" aria-label="Mute microphone"><span>♩</span><small>Mute</small></button>
+				<button id="camera-button" class="control" aria-label="Turn camera off"><span>▣</span><small>Camera</small></button>
+				<button id="agent-button" class="control agent-control" aria-label="Ask LocalRoom"><span>✦</span><small>Ask agent</small></button>
+				<button id="share-button" class="control" aria-label="Share meeting link"><span>↥</span><small>Invite</small></button>
+				<button id="transcript-button" class="control active" aria-label="Toggle workspace"><span>≡</span><small>Workspace</small></button>
+				<button id="leave-button" class="leave">End meeting</button>
+			</div>
+			<div class="footer-right"><span id="asr-dot"></span><b id="asr-state">Connecting to local AI</b></div>
+		</footer>
+	</div>
+
+	<section id="handoff" class="handoff hidden">
+		<div class="handoff-head"><span class="brand-mark">L</span><div><small>LOCALROOM COMPLETED THE HANDOFF</small><h1>Everyone can leave.<br><em>The work continues.</em></h1></div></div>
+		<div class="handoff-grid">
+			<article class="brief-card"><span>EXECUTIVE BRIEF</span><h2 id="brief-summary"></h2><div id="brief-decisions"></div></article>
+			<article><span>AUTONOMOUS ACTIONS</span><div id="brief-actions" class="brief-actions"></div></article>
+			<article><span>COMMITMENT MONITOR</span><div id="brief-commitments" class="brief-actions"></div></article>
+		</div>
+		<div class="handoff-proof"><b>0 bytes</b> sent to cloud <i></i><b id="handoff-audit">0</b> governed events <i></i><b id="handoff-memory">0</b> indexed records remain on this Dell Pro</div>
+		<button id="return-button">Return to meeting</button>
+	</section>
+
+	<button id="demo-toggle" class="demo-toggle" title="Demo director">⌘</button>
+	<aside id="demo-director" class="demo-director hidden">
+		<div><b>DEMO DIRECTOR</b><button id="demo-close">×</button></div>
+		<p>Inject reliable transcript moments while live audio remains active.</p>
+		<button data-demo="decision">1 · Decision card</button>
+		<button data-demo="commitment">2 · Commitment card</button>
+		<button data-demo="poll">3 · Collective poll</button>
+		<button data-demo="memory">4 · Ask institutional memory</button>
+		<button data-demo="security">5 · Block external disclosure</button>
+	</aside>
+	<div id="toast" class="toast"></div>
+	<script type="module" src="/app.js"></script>
 </body>
 </html>
