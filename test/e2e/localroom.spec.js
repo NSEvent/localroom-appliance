@@ -40,6 +40,22 @@ test("participant joins the private WebRTC room and receives a governed policy c
   await expect(page.getByRole("button", { name: "Keep blocked" })).toBeVisible();
 });
 
+test("web and iOS clients share one room roster and WebRTC authority", async ({ page, request }) => {
+  const iosPage = await page.context().newPage();
+  await page.goto("/?room=E2E-SHARED&autojoin=1&name=Web%20Client");
+  await iosPage.goto("/?room=E2E-SHARED&autojoin=1&name=LocalRoom%20iOS");
+
+  await expect(page.locator("#participant-count")).toHaveText("2 participants + agent");
+  await expect(iosPage.locator("#participant-count")).toHaveText("2 participants + agent");
+  const roomResponse = await request.get("/api/rooms/E2E-SHARED");
+  const room = await roomResponse.json();
+  expect(room.participants.map((participant) => participant.name).sort())
+    .toEqual(["LocalRoom iOS", "Web Client"]);
+
+  await iosPage.close();
+  await expect(page.locator("#participant-count")).toHaveText("1 participant + agent");
+});
+
 test("projector console tracks decisions, resolves owner gaps, answers questions, and exports", async ({ page, request }) => {
   const roomId = "E2E-CONSOLE";
   const seeded = await request.post(`/api/sessions/${roomId}/utterances`, {

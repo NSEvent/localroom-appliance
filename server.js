@@ -272,6 +272,9 @@ async function answerAgent(roomId, question, actorName) {
       `[[${page.slug}]] ${page.summary}\n${page.facts.join("\n")}`).join("\n\n");
     const meeting = buildMeetingContext(room);
     const result = await models.answer(room.model, { question, transcript, memory, meeting });
+    if (result.model !== room.model) {
+      intelligence.selectModel(roomId, result.model, "LocalRoom Agent", modelCatalog);
+    }
     answer = { answer: result.text, citations: extractCitations(result.text) };
     modelInfo = result;
   }

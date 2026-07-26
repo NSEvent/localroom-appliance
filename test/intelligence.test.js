@@ -55,6 +55,35 @@ test("commitment resolution creates an always-on monitored obligation", () => {
   });
 });
 
+test("ordinary explanations, abilities, and questions are not commitments", () => {
+  const system = harness();
+  for (const text of [
+    "Every client can connect locally and use its own microphone.",
+    "They can call you out if the requirement changes.",
+    "Can you tell me about Project Iliad?",
+    "Pork Chop, can you remind me to email Bob tomorrow?",
+    "We can combine the streams into one coherent transcription.",
+  ]) {
+    assert.deepEqual(system.addCaption("DELL-DEMO", caption(text)), [], text);
+  }
+  assert.equal(system.snapshot("DELL-DEMO").cards.length, 0);
+});
+
+test("only explicit future ownership becomes a passive commitment", () => {
+  const system = harness();
+  const [personal] = system.addCaption(
+    "DELL-DEMO", caption("I will email Legal by tomorrow.", "Kevin Tang"));
+  const [named] = system.addCaption(
+    "DELL-DEMO", caption("Maya Chen will prepare the launch brief by Friday.", "Jordan Lee"));
+
+  assert.equal(personal.metadata.owner, "Kevin Tang");
+  assert.equal(personal.metadata.task, "Email Legal");
+  assert.equal(personal.metadata.due, "tomorrow");
+  assert.equal(named.metadata.owner, "Maya Chen");
+  assert.equal(named.metadata.task, "Prepare the launch brief");
+  assert.equal(named.metadata.due, "Friday");
+});
+
 test("natural agent prompts create confirmable task cards", () => {
   const system = harness();
   const room = system.room("DELL-DEMO");

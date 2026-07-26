@@ -383,12 +383,27 @@ export function extractWakePrompt(text) {
 }
 
 function parseCommitment(text, speaker) {
-  const match = text.match(/\b(?:I|we|([A-Z][a-z]+))\s+(?:will|can|shall)\s+(.+?)(?:\s+by\s+(today|tomorrow|Friday|Monday|Tuesday|Wednesday|Thursday|Saturday|Sunday|end of (?:the )?day|EOD|next week))?[.!]?$/i);
-  if (!match) return null;
-  const owner = match[1] || (match[0].toLowerCase().startsWith("we ") ? "Team" : speaker);
-  let task = match[2].trim().replace(/\s+by\s+(today|tomorrow|Friday|Monday|Tuesday|Wednesday|Thursday|Saturday|Sunday|end of (?:the )?day|EOD|next week)$/i, "");
+  const clean = String(text || "").trim();
+  let match = clean.match(/\b(I|we)\s+(?:will|shall)\s+([^.!?]+)/i);
+  let owner = match?.[1].toLowerCase() === "we" ? "Team" : speaker;
+  let task = match?.[2];
+
+  if (!match) {
+    match = clean.match(/(?:^|[.!?]\s+|,\s*)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+will\s+([^.!?]+)/);
+    const nonNames = new Set(["He", "She", "They", "You", "It", "This", "That", "Someone", "Everyone"]);
+    if (!match || nonNames.has(match[1])) return null;
+    owner = match[1];
+    task = match[2];
+  }
+
+  task = task.trim();
+  if (task.length > 180 || task.split(/\s+/).length > 28) return null;
+  const dueMatch = task.match(
+    /\s+by\s+(today|tomorrow|Friday|Monday|Tuesday|Wednesday|Thursday|Saturday|Sunday|end of (?:the )?day|EOD|next week)$/i);
+  const due = dueMatch?.[1] || "No deadline captured";
+  if (dueMatch) task = task.slice(0, dueMatch.index);
   task = task.charAt(0).toUpperCase() + task.slice(1);
-  return { task, owner, due: match[3] || "No deadline captured" };
+  return { task, owner, due };
 }
 
 function parseAgentTask(text, actorName) {

@@ -60,7 +60,6 @@ export class LocalModelService {
   }
 
   async answer(modelId, { question, transcript, memory, meeting }) {
-    const config = MODEL_CONFIGS.find((candidate) => candidate.id === modelId) || MODEL_CONFIGS[0];
     const prompt = [
       "You are LocalRoom Agent, a concise private meeting participant.",
       "Answer in 1-3 short sentences. Use only the supplied live meeting state, institutional memory, and meeting transcript.",
@@ -74,24 +73,55 @@ export class LocalModelService {
       `QUESTION: ${question}`,
     ].join("\n");
     const started = performance.now();
-    const response = await this.fetch(`${config.endpoint}/chat/completions`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.2,
-        max_tokens: 700,
-        chat_template_kwargs: { enable_thinking: false },
-      }),
-      signal: AbortSignal.timeout(45_000),
-    });
-    if (!response.ok) throw new Error(`Local model returned HTTP ${response.status}`);
-    const result = await response.json();
-    const message = result.choices?.[0]?.message || {};
-    const text = String(message.content || message.reasoning_content || "").trim();
-    if (!text) throw new Error("Local model returned an empty answer");
-    return { text, model: config.id, latencyMs: Math.round(performance.now() - started) };
+    const requested = MODEL_CONFIGS.find((candidate) => candidate.id === modelId) || MODEL_CONFIGS[0];
+    const healthy = MODEL_CONFIGS.filter((candidate) => this.health.get(candidate.id)?.available);
+    const candidates = [
+      ...(this.health.get(requested.id)?.available === false ? [] : [requested]),
+      ...healthy.filter((candidate) => candidate.id !== requested.id),
+    ];
+    if (!candidates.length) candidates.push(requested);
+
+    let lastError;
+    for (const config of candidates) {
+      try {
+	const text = await this.complete(config, prompt);
+	return { text, model: config.id, latencyMs: Math.round(performance.now() - started) };
+      } catch (error) {
+	lastError = error;
+      }
+    }
+    throw lastError || new Error("No local model is available");
+  }
+
+  async complete(config, prompt) {
+    let lastError;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+	const response = await this.fetch(`${config.endpoint}/chat/completions`, {
+	  method: "POST",
+	  headers: { "content-type": "application/json" },
+	  body: JSON.stringify({
+	    model: config.model,
+	    messages: [{ role: "user", content: prompt }],
+	    temperature: 0.2,
+	    max_tokens: 700,
+	    chat_template_kwargs: { enable_thinking: false },
+	  }),
+	  signal: AbortSignal.timeout(45_000),
+	});
+	if (!response.ok) throw new Error(`Local model returned HTTP ${response.status}`);
+	const result = await response.json();
+	const message = result.choices?.[0]?.message || {};
+	const text = String(message.content || message.reasoning_content || "").trim();
+	if (!text) throw new Error("Local model returned an empty answer");
+	return text;
+      } catch (error) {
+	lastError = error;
+	if (attempt === 0 && /fetch failed|network|ECONN/i.test(error.message)) continue;
+	break;
+      }
+    }
+    throw lastError;
   }
 }
 

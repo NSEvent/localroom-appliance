@@ -61,3 +61,37 @@ test("local model prompt receives live meeting context as authoritative data", a
   assert.match(prompt, /\"activeCount\": 3/);
   assert.match(prompt, /\"confirmedDecisions\": 2/);
 });
+
+test("agent fails over from an unavailable selected model to healthy Nemotron", async () => {
+  const calls = [];
+  const models = new LocalModelService({
+    fetchImpl: async (url) => {
+      calls.push(url);
+      if (url.endsWith("/models")) {
+	if (url.includes("8090")) {
+	  return { ok: true, json: async () => ({ data: [{ id: "nemotron-3-nano-30b-a3b" }] }) };
+	}
+	throw new TypeError("fetch failed");
+      }
+      if (url.includes("8090/v1/chat/completions")) {
+	return {
+	  ok: true,
+	  json: async () => ({ choices: [{ message: { content: "Healthy local answer." } }] }),
+	};
+      }
+      throw new TypeError("fetch failed");
+    },
+  });
+
+  await models.models();
+  const result = await models.answer("qwen-30b", {
+    question: "What did I miss?",
+    transcript: "",
+    memory: "",
+    meeting: { meeting: { id: "ROOM" }, participants: {}, stats: {} },
+  });
+
+  assert.equal(result.model, "nemotron-30b");
+  assert.equal(result.text, "Healthy local answer.");
+  assert.equal(calls.some((url) => url.includes("8080/chat/completions")), false);
+});
