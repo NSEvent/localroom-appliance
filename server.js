@@ -16,6 +16,13 @@ const rooms = new Map();
 const app = express();
 app.disable("x-powered-by");
 app.use(express.static(path.join(import.meta.dirname, "public")));
+app.get("/localroom-ca.pem", (_request, response) => {
+  const certificate = process.env.CA_CERT_PATH;
+  if (!certificate || !fs.existsSync(certificate)) {
+    return response.status(404).send("Certificate setup is not enabled.");
+  }
+  response.download(certificate, "localroom-ca.pem");
+});
 app.get("/health", async (_request, response) => {
   try {
     const upstream = await fetch(`${ASR_URL}/health`, { signal: AbortSignal.timeout(1800) });
@@ -73,7 +80,8 @@ const server = tlsKey && tlsCert
   : http.createServer(app);
 const wss = new WebSocketServer({ server, path: "/signal" });
 
-wss.on("connection", (socket) => {
+wss.on("connection", (socket, request) => {
+  socket.clientAddress = request.socket.remoteAddress;
   socket.isAlive = true;
   socket.on("pong", () => { socket.isAlive = true; });
   socket.on("message", (data) => {
@@ -90,6 +98,7 @@ wss.on("connection", (socket) => {
       const room = rooms.get(roomId);
       const existing = [...room.values()].map(publicParticipant);
       room.set(id, { id, name, muted: false, cameraOff: false, socket });
+      console.log(`join room=${roomId} participant=${name} address=${socket.clientAddress}`);
       socket.send(JSON.stringify({ type: "welcome", participants: existing }));
       broadcast(roomId, { type: "participant-joined", participant: { id, name } }, id);
       broadcastRoster(roomId);
@@ -159,6 +168,7 @@ function removeSocket(socket) {
   const meta = socket.meta;
   if (!meta) return;
   const room = rooms.get(meta.roomId);
+  console.log(`leave room=${meta.roomId} participant=${meta.id} address=${socket.clientAddress}`);
   room?.delete(meta.id);
   broadcast(meta.roomId, { type: "participant-left", id: meta.id });
   if (room?.size) broadcastRoster(meta.roomId);

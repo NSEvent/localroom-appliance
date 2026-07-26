@@ -34,6 +34,8 @@ button { cursor: pointer; }
 #join-form button:hover { background: #283025; }
 .trust-row { margin-top: 22px; display: flex; gap: 22px; font: 10px DM Mono, monospace; text-transform: uppercase; color: #717872; }
 .trust-row span::first-letter { color: var(--green-deep); }
+.setup-link { display:inline-block;margin-top:18px;color:#53643d;font-size:11px;font-weight:700;text-decoration:none;border-bottom:1px solid #9eaa89; }
+.setup-link:hover { color:#253317; }
 .lobby-aside { display: grid; place-content: center; gap: 38px; background: #101310; color: white; position: relative; overflow: hidden; }
 .lobby-aside::before { content:""; position:absolute; width:700px; height:700px; border-radius:50%; background: radial-gradient(circle,#b8f34a25,transparent 60%); }
 .architecture { z-index: 1; display: flex; align-items: center; }

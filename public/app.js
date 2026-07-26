@@ -14,7 +14,19 @@ const state = {
   startedAt: null,
   captions: [],
 };
-const rtcConfig = { iceServers: [] };
+const rtcConfig = {
+  iceServers: [
+    {
+      urls: [
+        "turn:172.16.10.189:3478?transport=udp",
+        "turn:172.16.10.189:3478?transport=tcp",
+      ],
+      username: "localroom",
+      credential: "hackathon",
+    },
+  ],
+  iceCandidatePoolSize: 4,
+};
 
 $("#join-form").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -188,15 +200,24 @@ function beginTranscription() {
   const source = context.createMediaStreamSource(audioStream);
   const processor = context.createScriptProcessor(4096, 1, 1);
   let samples = [];
+  let speechFrames = 0;
+  let noiseFloor = 0.006;
   let segmentStarted = performance.now();
   processor.onaudioprocess = ({ inputBuffer }) => {
     if (!state.transcriptionActive || state.muted) return;
-    samples.push(new Float32Array(inputBuffer.getChannelData(0)));
+    const frame = new Float32Array(inputBuffer.getChannelData(0));
+    samples.push(frame);
+    const rms = Math.sqrt(frame.reduce((sum, sample) => sum + sample * sample, 0) / frame.length);
+    const speechThreshold = Math.max(0.012, noiseFloor * 2.8);
+    if (rms > speechThreshold) speechFrames += 1;
+    else noiseFloor = noiseFloor * 0.96 + rms * 0.04;
     if (performance.now() - segmentStarted >= 4200) {
       const segment = samples;
+      const shouldTranscribe = speechFrames >= 3;
       samples = [];
+      speechFrames = 0;
       segmentStarted = performance.now();
-      transcribe(encodeWav(segment, context.sampleRate));
+      if (shouldTranscribe) transcribe(encodeWav(segment, context.sampleRate));
     }
   };
   source.connect(processor);
@@ -220,10 +241,24 @@ function showCaption(caption) {
   if (!caption.text) return;
   state.captions.push(caption);
   $("#transcript .empty-state")?.remove();
-  const entry = document.createElement("div");
-  entry.className = "transcript-entry";
-  entry.innerHTML = `<div class="meta"><span class="speaker-dot"></span><b>${escapeHtml(caption.name)}</b><span>${new Date(caption.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span><span class="latency">${caption.latencyMs}ms local</span></div><p>${escapeHtml(caption.text)}</p>`;
-  $("#transcript").append(entry);
+  const previous = $("#transcript .transcript-entry:last-child");
+  const previousAt = previous?.dataset.at ? new Date(previous.dataset.at).getTime() : 0;
+  const continuesTurn = previous?.dataset.participantId === caption.participantId
+    && new Date(caption.at).getTime() - previousAt < 9000;
+  if (continuesTurn) {
+    const paragraph = previous.querySelector("p");
+    paragraph.textContent = `${paragraph.textContent} ${caption.text}`;
+    previous.dataset.at = caption.at;
+    previous.querySelector(".latency").textContent = `${caption.latencyMs}ms local`;
+  } else {
+    const entry = document.createElement("div");
+    entry.className = "transcript-entry";
+    entry.dataset.participantId = caption.participantId;
+    entry.dataset.at = caption.at;
+    const color = speakerColor(caption.participantId);
+    entry.innerHTML = `<div class="meta"><span class="speaker-dot" style="background:${color};box-shadow:0 0 7px ${color}66"></span><b>${escapeHtml(caption.name)}</b><span>${new Date(caption.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span><span class="latency">${caption.latencyMs}ms local</span></div><p>${escapeHtml(caption.text)}</p>`;
+    $("#transcript").append(entry);
+  }
   $("#transcript").scrollTop = $("#transcript").scrollHeight;
   $("#caption-speaker").textContent = caption.name;
   $("#caption-text").textContent = caption.text;
@@ -378,6 +413,11 @@ function updateParticipantCount() {
 }
 function initials(name) {
   return name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+}
+function speakerColor(id) {
+  const palette = ["#b8f34a", "#63d7ff", "#ffbd66", "#d8a0ff", "#ff7b8c", "#70e0bb"];
+  const hash = [...id].reduce((value, char) => ((value << 5) - value + char.charCodeAt(0)) | 0, 0);
+  return palette[Math.abs(hash) % palette.length];
 }
 function escapeHtml(value) {
   const node = document.createElement("span");

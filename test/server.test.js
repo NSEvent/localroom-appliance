@@ -21,4 +21,8 @@ test("signaling client has WebRTC and isolated transcription paths", () => {
   assert.match(js, /\/api\/transcribe/);
   assert.match(js, /withTimeout\(requestMedia\(\), 5000\)/);
   assert.match(js, /Joined without media/);
+  assert.match(js, /speechFrames >= 3/);
+  assert.match(js, /continuesTurn/);
+  assert.match(js, /speakerColor/);
+  assert.match(js, /turn:172\.16\.10\.189:3478/);
 });
