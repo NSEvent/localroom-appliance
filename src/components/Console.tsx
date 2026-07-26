@@ -17,9 +17,10 @@ type Tab = 'console' | 'transcription'
 export function Console() {
   const { session, loadError, loading, wsStatus } = useStore()
   const ended = session?.session.status === 'ended'
-  // Diagnostic view for checking mic + STT without the demo panels competing
-  // for width. Never auto-switches: the console tab is the demo screen.
-  const [tab, setTab] = useState<Tab>('console')
+  // Simplified default (audio settings + live transcript). The full demo
+  // console is one tab away and unchanged — this is a default, not a
+  // deletion. Flip back to 'console' when the demo screen is what's wanted.
+  const [tab, setTab] = useState<Tab>('transcription')
 
   return (
     <div className="console">
