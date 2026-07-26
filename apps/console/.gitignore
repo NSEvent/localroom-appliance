@@ -1,0 +1,27 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+# dist IS committed: the event runs offline, and gb10_bootstrap.sh clones the
+# repo bundle onto a machine with no npm registry. Without a committed dist,
+# meety_api mounts nothing and the console 404s at "/" (hit for real on
+# 2026-07-26). Rebuild with `npm run build` and commit the result.
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
