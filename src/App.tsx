@@ -4,6 +4,7 @@
 //   /session/{id}?presenter=1 → presenter controls (never on the projector)
 
 import { useEffect, useState } from 'react'
+import * as api from './api'
 import { Console } from './components/Console'
 import { HostSetup } from './components/HostSetup'
 import { PresenterControls } from './components/PresenterControls'
@@ -54,6 +55,26 @@ export default function App() {
     const [pathname, search = ''] = path.split('?')
     setRoute(parseRoute(pathname, search ? `?${search}` : ''))
   }
+
+  // One session at a time (appliance rule): if a meeting is already live,
+  // landing on "/" joins it rather than offering to start a rival one. The
+  // server enforces this too — this is just so the screen matches reality.
+  useEffect(() => {
+    if (route.name !== 'setup') return
+    let cancelled = false
+    void (async () => {
+      try {
+        const { session } = await api.getCurrentSession()
+        if (!cancelled && session) navigate(`/session/${session.id}`)
+      } catch {
+        /* no server yet — stay on setup, it renders its own error */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route.name])
 
   switch (route.name) {
     case 'setup':

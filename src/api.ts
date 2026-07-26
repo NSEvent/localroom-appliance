@@ -6,6 +6,7 @@
 import type {
   AudioDevices,
   AudioLevel,
+  CaptureStatus,
   Health,
   SessionState,
   Utterance,
@@ -206,6 +207,28 @@ export async function getHealth(): Promise<Health> {
 /** Capture devices on the APPLIANCE, not the browser host. */
 export async function getAudioDevices(): Promise<AudioDevices> {
   return request<AudioDevices>('/audio/devices')
+}
+
+/** The one live session, or null. One meeting at a time per appliance. */
+export async function getCurrentSession(): Promise<{ session: { id: string } | null }> {
+  return request<{ session: { id: string } | null }>('/sessions/current')
+}
+
+/** Appliance capture: the box records its own mic into the session. */
+export async function startCapture(sessionId: string): Promise<CaptureStatus> {
+  return request<CaptureStatus>(`/sessions/${sessionId}/capture/start`, {
+    method: 'POST',
+  })
+}
+
+export async function stopCapture(sessionId: string): Promise<CaptureStatus> {
+  return request<CaptureStatus>(`/sessions/${sessionId}/capture/stop`, {
+    method: 'POST',
+  })
+}
+
+export async function getCaptureStatus(sessionId: string): Promise<CaptureStatus> {
+  return request<CaptureStatus>(`/sessions/${sessionId}/capture`)
 }
 
 /** One short appliance capture -> peak/RMS/dBFS for the level meter. */

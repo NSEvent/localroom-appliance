@@ -1,72 +1,80 @@
-// Transcription view — the default session screen for now.
+// Transcription view — the session screen while the pipeline is being proven.
 //
-// Deliberately narrow: audio settings across the top, the live transcript
-// filling everything below. No meeting record, no alerts, nothing competing
-// for width. This is the screen you watch to answer "is the mic working and
-// is STT keeping up", which is the question that matters while the pipeline
-// is being validated.
+// One control row, then the transcript. Nothing else. The question this screen
+// answers is "is the mic working and is STT keeping up", and every element that
+// does not help answer it has been left out.
 //
-// The full demo console is one tab away and unchanged — this simplification
-// is a default, not a deletion.
+// Capture runs on the APPLIANCE: the box records its own mic in fixed chunks
+// and feeds them through the same ingest path a browser upload takes. The
+// browser here is a viewer, so there is no getUserMedia and no mic permission
+// prompt. The meter reads the capture loop's own levels while it is running —
+// the ALSA device is exclusive, so a second opener would just fail.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from '../api'
 import { useStore } from '../store'
 import { mmss } from '../time'
-import type { AudioDevice, AudioLevel } from '../types'
+import type { AudioDevice, AudioLevel, CaptureStatus } from '../types'
 
-const POLL_MS = 1200
+const POLL_MS = 1000
 
 /** dBFS → 0..1 across a meter floor of -60 dB. */
 function meterFraction(dbfs: number | null | undefined): number {
   if (dbfs === null || dbfs === undefined) return 0
-  const floor = -60
-  if (dbfs <= floor) return 0
-  return Math.min(1, (dbfs - floor) / -floor)
+  if (dbfs <= -60) return 0
+  return Math.min(1, (dbfs + 60) / 60)
 }
 
-function AudioBar() {
-  const { health } = useStore()
+function ControlRow() {
+  const { sessionId } = useStore()
   const [devices, setDevices] = useState<AudioDevice[]>([])
   const [selected, setSelected] = useState<string | null>(null)
+  const [capture, setCapture] = useState<CaptureStatus | null>(null)
   const [level, setLevel] = useState<AudioLevel | null>(null)
-  const [monitoring, setMonitoring] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
   const inFlight = useRef(false)
 
-  const isAppliance = health?.capture.clientIsAppliance ?? false
+  const recording = capture?.running ?? false
 
-  const loadDevices = useCallback(async () => {
-    try {
-      const d = await api.getAudioDevices()
-      setDevices(d.devices)
-      setSelected((cur) => cur ?? d.selected ?? d.devices[0]?.id ?? null)
-      setError(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'could not list devices')
+  useEffect(() => {
+    void (async () => {
+      try {
+        const [d, c] = await Promise.all([
+          api.getAudioDevices(),
+          api.getCaptureStatus(sessionId),
+        ])
+        setDevices(d.devices)
+        setSelected((cur) => cur ?? d.selected ?? d.devices[0]?.id ?? null)
+        setCapture(c)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'could not read audio state')
+      }
+    })()
+  }, [sessionId])
+
+  // Poll only while recording: the meter then reads the capture loop's levels
+  // rather than opening the exclusive device a second time.
+  useEffect(() => {
+    if (!recording) {
+      setLevel(null)
+      return
     }
-  }, [])
-
-  useEffect(() => {
-    void loadDevices()
-  }, [loadDevices])
-
-  // One request in flight at a time — capture is exclusive on this hardware,
-  // so a backed-up queue would hold the device away from the session.
-  useEffect(() => {
-    if (!monitoring) return
     let stop = false
     const tick = async () => {
       if (stop || inFlight.current) return
       inFlight.current = true
       try {
-        const l = await api.getAudioLevel(selected, 0.5)
+        const [l, c] = await Promise.all([
+          api.getAudioLevel(selected, 0.5),
+          api.getCaptureStatus(sessionId),
+        ])
         if (!stop) {
           setLevel(l)
-          if (!l.ok && l.busy) setMonitoring(false) // someone else took the mic
+          setCapture(c)
         }
-      } catch (e) {
-        if (!stop) setError(e instanceof Error ? e.message : 'level check failed')
+      } catch {
+        /* transient — the next tick retries */
       } finally {
         inFlight.current = false
       }
@@ -77,84 +85,73 @@ function AudioBar() {
       stop = true
       clearInterval(t)
     }
-  }, [monitoring, selected])
+  }, [recording, selected, sessionId])
+
+  const toggle = useCallback(async () => {
+    setPending(true)
+    setError(null)
+    try {
+      setCapture(recording ? await api.stopCapture(sessionId)
+                           : await api.startCapture(sessionId))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'capture failed')
+    } finally {
+      setPending(false)
+    }
+  }, [recording, sessionId])
 
   const peak = meterFraction(level?.peak_dbfs)
   const rms = meterFraction(level?.rms_dbfs)
   const meterState = level?.clipping ? 'clip' : level?.silent ? 'silent' : 'ok'
 
   return (
-    <div className="audio-bar">
-      <div className="audio-bar-controls">
-        <label htmlFor="audio-device">Mic</label>
-        <select
-          id="audio-device"
-          value={selected ?? ''}
-          onChange={(e) => {
-            setSelected(e.target.value)
-            setLevel(null)
-          }}
-          disabled={devices.length === 0}
-        >
-          {devices.length === 0 && <option value="">no capture device</option>}
-          {devices.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
+    <div className="ctl">
+      <button
+        type="button"
+        className={`rec-btn ${recording ? 'on' : ''}`}
+        onClick={() => void toggle()}
+        disabled={pending || !selected}
+        aria-pressed={recording}
+      >
+        <span className="rec-dot" aria-hidden />
+        {pending ? '…' : recording ? 'Stop' : 'Record'}
+      </button>
 
-        <button
-          type="button"
-          className={`btn ${monitoring ? 'btn-solid' : 'btn-outline'}`}
-          onClick={() => setMonitoring((m) => !m)}
-          disabled={!selected}
-        >
-          {monitoring ? 'Stop meter' : 'Test level'}
-        </button>
+      <select
+        value={selected ?? ''}
+        onChange={(e) => setSelected(e.target.value)}
+        disabled={recording || devices.length === 0}
+        aria-label="capture device"
+      >
+        {devices.length === 0 && <option value="">no capture device</option>}
+        {devices.map((d) => (
+          <option key={d.id} value={d.id}>{d.name}</option>
+        ))}
+      </select>
 
-        <div className="meter inline" role="meter" aria-label="input level">
-          <div className={`meter-track ${meterState}`}>
-            <div className="meter-rms" style={{ width: `${rms * 100}%` }} />
-            <div className="meter-peak" style={{ left: `${peak * 100}%` }} />
-            <div className="meter-target" style={{ left: `${meterFraction(-12) * 100}%` }} />
-          </div>
+      <div className="meter" role="meter" aria-label="input level">
+        <div className={`meter-track ${meterState}`}>
+          <div className="meter-rms" style={{ width: `${rms * 100}%` }} />
+          <div className="meter-peak" style={{ left: `${peak * 100}%` }} />
+          <div className="meter-target" style={{ left: `${meterFraction(-12) * 100}%` }} />
         </div>
-
-        <span className="audio-readout">
-          {level?.ok ? (
-            <>
-              {level.peak_dbfs ?? '–'} dBFS
-              {level.clipping && <strong className="clip-warn"> CLIP</strong>}
-              {level.silent && <span className="silent-warn"> silent</span>}
-            </>
-          ) : monitoring ? (
-            'sampling…'
-          ) : (
-            'idle'
-          )}
-        </span>
-
-        <span className={`capture-chip ${isAppliance ? 'appliance' : 'remote'}`}>
-          {isAppliance ? 'appliance capture' : 'remote viewer'}
-        </span>
       </div>
 
-      {level && !level.ok && level.error && (
-        <div className="audio-error">
-          {level.error}
-          {(level.holders?.length ?? 0) > 0 && (
-            <> — held by {level.holders!.map((h) => `${h.comm}(${h.pid})`).join(', ')}</>
-          )}
-        </div>
+      <span className="ctl-readout">
+        {recording
+          ? `${level?.peak_dbfs ?? '–'} dBFS · ${capture?.chunks ?? 0} chunks`
+          : 'not recording'}
+        {level?.clipping && <strong className="clip-warn"> CLIP</strong>}
+      </span>
+
+      {(error || capture?.last_error) && (
+        <span className="ctl-error">{error ?? capture?.last_error}</span>
       )}
-      {error && <div className="audio-error">{error}</div>}
     </div>
   )
 }
 
-/** Live stream: newest at the bottom, autoscroll pinned unless scrolled up. */
-function LiveTranscript() {
+export function TranscriptionView() {
   const { session, health } = useStore()
   const bodyRef = useRef<HTMLDivElement>(null)
   const pinnedRef = useRef(true)
@@ -177,18 +174,33 @@ function LiveTranscript() {
     setPinned(atBottom)
   }
 
-  const asrLabel = health?.asr.model ?? health?.asr.provider ?? 'unknown'
-  const asrReady = health?.asr.status !== 'down'
+  const asrOk = health?.asr.status !== 'down'
 
   return (
-    <div className="live-transcript">
-      <div className="live-head">
-        <h2>Live transcript</h2>
-        <span className="live-meta">
-          <span className={`dot ${asrReady ? 'good' : 'bad'}`} aria-hidden /> {asrLabel}
-          {' · '}
-          {count} {count === 1 ? 'utterance' : 'utterances'}
-        </span>
+    <div className="tv">
+      <ControlRow />
+
+      <div className="tv-body" ref={bodyRef} onScroll={onScroll}>
+        {count === 0 ? (
+          <div className="tv-empty">
+            <p>No speech yet.</p>
+            <p className="dim">
+              Press Record. Silence produces no line — that is expected, not a failure.
+            </p>
+          </div>
+        ) : (
+          utterances.map((u) => (
+            <div key={u.id} className="tv-line">
+              <span className="tv-ts">{mmss(u.ts_start)}</span>
+              <span className="tv-text">{u.text}</span>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="tv-foot">
+        <span className={`dot ${asrOk ? 'good' : 'bad'}`} aria-hidden />
+        {health?.asr.model ?? 'ASR'} · {count} {count === 1 ? 'line' : 'lines'}
         {!pinned && (
           <button
             type="button"
@@ -203,35 +215,6 @@ function LiveTranscript() {
           </button>
         )}
       </div>
-
-      <div className="live-body" ref={bodyRef} onScroll={onScroll}>
-        {count === 0 ? (
-          <div className="live-empty">
-            <p>Waiting for speech.</p>
-            <p className="dim">
-              Silence produces no line — that is expected, not a failure. Lines appear
-              only when the recognizer finds words.
-            </p>
-          </div>
-        ) : (
-          utterances.map((u) => (
-            <div key={u.id} className="live-line">
-              <span className="live-ts">{mmss(u.ts_start)}</span>
-              <span className={`live-src ${u.source}`}>{u.source}</span>
-              <span className="live-text">{u.text}</span>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  )
-}
-
-export function TranscriptionView() {
-  return (
-    <div className="transcription-view">
-      <AudioBar />
-      <LiveTranscript />
     </div>
   )
 }

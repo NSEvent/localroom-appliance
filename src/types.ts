@@ -222,6 +222,16 @@ export interface AudioDevices {
   busy: { busy: boolean; holders: { pid: number; comm: string }[]; path?: string }
 }
 
+export interface CaptureStatus {
+  running: boolean
+  session_id: string | null
+  device: string | null
+  chunks: number
+  errors: number
+  last_error: string | null
+  chunk_seconds: number
+}
+
 export interface AudioLevel {
   ok: boolean
   error?: string
@@ -237,4 +247,6 @@ export interface AudioLevel {
   rms_dbfs?: number | null
   clipping?: boolean
   silent?: boolean
+  /** "capture" when the reading came from the running capture loop. */
+  source?: string
 }

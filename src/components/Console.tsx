@@ -59,18 +59,20 @@ export function Console() {
             </button>
           </div>
           {tab === 'console' ? (
-            <div className="console-main">
-              <TranscriptPanel />
-              <MeetingRecord />
-              <div className="col">
-                <AlertsPanel />
-                <NudgeBanner />
+            <>
+              <div className="console-main">
+                <TranscriptPanel />
+                <MeetingRecord />
+                <div className="col">
+                  <AlertsPanel />
+                  <NudgeBanner />
+                </div>
               </div>
-            </div>
+              <BottomStrip />
+            </>
           ) : (
             <TranscriptionView />
           )}
-          <BottomStrip />
         </>
       )}
     </div>
