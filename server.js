@@ -223,7 +223,9 @@ function selectVoice(meta, voiceId) {
 
 async function answerAgent(roomId, question, actorName) {
   const room = intelligence.room(roomId);
-  broadcast(roomId, { type: "agent-status", status: "thinking", question, actorName });
+  broadcast(roomId, {
+    type: "agent-status", status: "retrieving", detail: "Searching local meeting memory", question, actorName,
+  });
   const taskCard = intelligence.proposeTaskFromPrompt(roomId, question, actorName);
   let answer = taskCard ? {
     answer: `I captured “${taskCard.title}” for ${taskCard.metadata.owner}${taskCard.metadata.due === "No deadline captured" ? ". Confirm the shared task card to start monitoring it." : ` by ${taskCard.metadata.due}. Confirm the shared task card to start monitoring it.`}`,
@@ -248,7 +250,6 @@ async function answerAgent(roomId, question, actorName) {
     at: new Date().toISOString(),
     ...modelInfo,
   };
-  try { event.audioURL = await speech.synthesize(event.text, room.voice); } catch { event.audioURL = null; }
   intelligence.addCaption(roomId, makeCaption({
     id: event.id,
     participantId: "localroom-agent",
@@ -265,6 +266,7 @@ async function answerAgent(roomId, question, actorName) {
   audit.append({ kind: "agent_run", status: "completed", actor: "LocalRoom Agent", action: "answer", roomId, model: event.model });
   broadcast(roomId, event);
   broadcastRoom(roomId);
+  synthesizeAnswer(roomId, event, room.voice);
   return event;
 }
 
@@ -274,9 +276,22 @@ function publishCaption(roomId, caption) {
   if (proposals.length) broadcastRoom(roomId);
   const question = extractWakePrompt(caption.text);
   if (question) {
+    console.log(`[wake] Pork Chop detected for room ${roomId}; participant ${caption.participantId}`);
+    broadcast(roomId, {
+      type: "agent-status", status: "wake-detected", detail: "Pork Chop heard you", question, actorName: caption.name,
+    });
     answerAgent(roomId, question, caption.name).catch((error) =>
       broadcast(roomId, { type: "agent-error", message: error.message }));
   }
+}
+
+async function synthesizeAnswer(roomId, event, voice) {
+  broadcast(roomId, {
+    type: "agent-status", status: "preparing-voice", detail: "Answer ready · preparing local voice",
+  });
+  let audioURL = null;
+  try { audioURL = await speech.synthesize(event.text, voice); } catch {}
+  broadcast(roomId, { type: "agent-audio", id: event.id, audioURL });
 }
 
 function queueAudioCandidate(candidate) {

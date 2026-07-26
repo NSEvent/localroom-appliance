@@ -138,6 +138,9 @@ test("Pork Chop wake word tolerates likely ASR spellings", () => {
     extractWakePrompt("Hey pork shop — who owns the revised flow?"),
     "who owns the revised flow?");
   assert.equal(extractWakePrompt("Porkchop: what did we decide?"), "what did we decide?");
+  assert.equal(
+    extractWakePrompt("Okay, port job. Can you remind me what Project Iliad is?"),
+    "Can you remind me what Project Iliad is?");
   assert.equal(extractWakePrompt("Can you remind me what Project Iliad is?"), null);
 });
 

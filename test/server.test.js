@@ -39,3 +39,11 @@ test("UI exposes shared cards, collective polls, agent, and model switching", ()
   assert.match(js, /meeting-ended/);
   assert.match(js, /room\.captions/);
 });
+
+test("agent answers render before asynchronous local speech is ready", () => {
+  const server = fs.readFileSync(new URL("../server.js", import.meta.url), "utf8");
+  const client = fs.readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+  assert.match(server, /broadcast\(roomId, event\);\s*broadcastRoom\(roomId\);\s*synthesizeAnswer/);
+  assert.match(client, /message\.type === "agent-audio"/);
+  assert.match(client, /Pork Chop heard you/);
+});

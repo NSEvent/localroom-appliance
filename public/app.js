@@ -54,9 +54,16 @@ function handleMessage(message) {
   } else if (message.type === "caption") {
     showCaption(message);
   } else if (message.type === "agent-status") {
-    setAgentState("thinking", `Thinking about ${message.actorName}'s question`);
+    const status = {
+      "wake-detected": ["thinking", "Pork Chop heard you"],
+      retrieving: ["thinking", "Searching local memory…"],
+      "preparing-voice": ["thinking", "Answer ready · preparing voice…"],
+    }[message.status] || ["thinking", message.detail || "Working locally…"];
+    setAgentState(status[0], status[1]);
   } else if (message.type === "agent-answer") {
     showAgentAnswer(message);
+  } else if (message.type === "agent-audio") {
+    playAgentAudio(message);
   } else if (message.type === "agent-error") {
     setAgentState("", "Listening for Pork Chop");
     toast(`Agent unavailable: ${message.message}`);
@@ -166,22 +173,24 @@ function showCaption(caption) {
 }
 
 function showAgentAnswer(answer) {
-  setAgentState("speaking", `Answered locally · ${answer.latencyMs}ms`);
+  setAgentState("thinking", `Answer ready · ${answer.latencyMs}ms · preparing voice…`);
   showCaption({ ...answer, type: "caption", participantId: "localroom-agent", source: "agent", latencyMs: answer.latencyMs });
-  if (answer.audioURL) {
-    state.media.transcriptionActive = false;
-    const audio = new Audio(answer.audioURL);
-    audio.addEventListener("ended", () => {
-      state.media.transcriptionActive = true;
-      setAgentState("", "Listening for Pork Chop");
-    });
-    audio.play().catch(() => {
-      state.media.transcriptionActive = true;
-      setAgentState("", "Listening for Pork Chop");
-    });
-  } else {
-    setTimeout(() => setAgentState("", "Listening for Pork Chop"), 2600);
+}
+
+function playAgentAudio(message) {
+  if (!message.audioURL) {
+    setAgentState("", "Listening for Pork Chop");
+    return;
   }
+  state.media.transcriptionActive = false;
+  setAgentState("speaking", "Speaking locally");
+  const audio = new Audio(message.audioURL);
+  const finished = () => {
+    state.media.transcriptionActive = true;
+    setAgentState("", "Listening for Pork Chop");
+  };
+  audio.addEventListener("ended", finished, { once: true });
+  audio.play().catch(finished);
 }
 
 async function askAgent(question = $("#agent-question").value.trim()) {
