@@ -172,6 +172,14 @@ export function endRecord(record) {
   finalize(record);
 }
 
+export function resumeRecord(record) {
+  if (!["closing", "ended"].includes(record.session.status)) return record.session;
+  record.session.status = "live";
+  record.session.ended_at = null;
+  finalize(record);
+  return record.session;
+}
+
 export function answerRecordQuestion(record, question, askedBy = "host") {
   const normalized = question.toLowerCase();
   let answer;

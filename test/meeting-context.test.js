@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { LocalModelService } from "../local-services.js";
-import { buildMeetingContext } from "../meeting-context.js";
+import { buildMeetingContext, groundMeetingAnswer } from "../meeting-context.js";
 import { RoomIntelligence } from "../localroom-core.js";
 
 test("meeting context exposes authoritative identity, attendance, and stats", () => {
@@ -94,4 +94,21 @@ test("agent fails over from an unavailable selected model to healthy Nemotron", 
   assert.equal(result.model, "nemotron-30b");
   assert.equal(result.text, "Healthy local answer.");
   assert.equal(calls.some((url) => url.includes("8080/chat/completions")), false);
+});
+
+test("live meeting facts override a model's stale closing summary", () => {
+  const meeting = {
+    meeting: { status: "live" },
+    participants: { activeCount: 2 },
+    stats: { confirmedDecisions: 0, actionItems: 5, openQuestions: 1 },
+  };
+  const answer = groundMeetingAnswer(
+    "The meeting ended with no decision recorded and no action items confirmed.",
+    meeting,
+  );
+
+  assert.equal(
+    answer,
+    "The meeting is still live. No decision is recorded yet. 5 action items captured.",
+  );
 });

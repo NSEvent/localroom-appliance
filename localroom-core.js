@@ -6,6 +6,7 @@ import {
   endRecord,
   ingestRecordCaption,
   removeRecordParticipant,
+  resumeRecord,
 } from "./meeting-record.js";
 
 const RESTRICTED = new Set(["CONFIDENTIAL", "CUI", "CUI // EXPORT CONTROLLED", "M&A CLEAN TEAM ONLY"]);
@@ -305,6 +306,19 @@ export class RoomIntelligence {
       actor: "LocalRoom Agent",
     });
     return brief;
+  }
+
+  resumeMeeting(roomId, actorName) {
+    const room = this.room(roomId);
+    resumeRecord(room.record);
+    room.timeline.unshift({
+      id: this.id(),
+      at: this.now().toISOString(),
+      kind: "agent",
+      title: "Meeting resumed",
+      actor: actorName,
+    });
+    return this.snapshot(roomId);
   }
 }
 

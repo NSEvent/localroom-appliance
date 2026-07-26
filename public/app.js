@@ -343,7 +343,14 @@ $("#leave-button").addEventListener("click", async () => {
   });
   if (response.ok) showHandoff(await response.json());
 });
-$("#return-button").addEventListener("click", () => {
+$("#return-button").addEventListener("click", async () => {
+  const response = await fetch(`/api/rooms/${state.roomId}/resume`, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ actorName: state.name }),
+  });
+  if (!response.ok) return toast("Could not resume this meeting.");
+  const { room } = await response.json();
+  renderRoom(room);
   $("#handoff").classList.add("hidden");
   $("#meeting").classList.remove("hidden");
 });

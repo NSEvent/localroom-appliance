@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
-import { formatMeetingContext } from "./meeting-context.js";
+import { formatMeetingContext, groundMeetingAnswer } from "./meeting-context.js";
 
 const MODEL_CONFIGS = [
   {
@@ -85,7 +85,11 @@ export class LocalModelService {
     for (const config of candidates) {
       try {
 	const text = await this.complete(config, prompt);
-	return { text, model: config.id, latencyMs: Math.round(performance.now() - started) };
+	return {
+	  text: groundMeetingAnswer(text, meeting),
+	  model: config.id,
+	  latencyMs: Math.round(performance.now() - started),
+	};
       } catch (error) {
 	lastError = error;
       }

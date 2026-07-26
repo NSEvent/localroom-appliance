@@ -112,6 +112,17 @@ app.post("/api/rooms/:roomId/end", (request, response) => {
   response.json(brief);
 });
 
+app.post("/api/rooms/:roomId/resume", (request, response) => {
+  const roomId = clean(request.params.roomId, 80);
+  const room = intelligence.resumeMeeting(
+    roomId,
+    clean(request.body.actorName, 50) || "Organizer",
+  );
+  broadcastRoom(roomId);
+  consoleHub.broadcastState(roomId);
+  response.json({ room });
+});
+
 app.post("/api/transcribe", express.raw({ type: "*/*", limit: MAX_AUDIO_BYTES }), async (request, response) => {
   const participantId = clean(request.header("x-participant-id"), 80);
   const roomId = clean(request.header("x-room-id"), 80);

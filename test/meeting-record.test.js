@@ -5,8 +5,10 @@ import {
   answerRecordQuestion,
   closeRecord,
   createMeetingRecord,
+  endRecord,
   ingestRecordCaption,
   patchRecordEntity,
+  resumeRecord,
 } from "../meeting-record.js";
 
 function caption(id, name, text) {
@@ -68,6 +70,19 @@ test("closing sweep promotes open questions to high-severity alerts", () => {
 
   assert.equal(record.session.status, "closing");
   assert.equal(record.alerts.find((item) => item.type === "open_question_at_close")?.severity, "high");
+});
+
+test("returning after handoff resumes the authoritative meeting state", () => {
+  const record = createMeetingRecord("DELL-DEMO", "Review");
+  ingestRecordCaption(record, caption("utt_001", "Jordan", "Does Legal approve the plan?"));
+  endRecord(record);
+  assert.equal(record.session.status, "ended");
+  assert.ok(record.session.ended_at);
+
+  resumeRecord(record);
+  assert.equal(record.session.status, "live");
+  assert.equal(record.session.ended_at, null);
+  assert.equal(record.alerts.find((item) => item.type === "open_question_at_close")?.status, "resolved");
 });
 
 test("meeting Q&A answers from the authoritative record with evidence ids", () => {

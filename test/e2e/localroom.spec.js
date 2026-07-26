@@ -56,6 +56,21 @@ test("web and iOS clients share one room roster and WebRTC authority", async ({ 
   await expect(page.locator("#participant-count")).toHaveText("1 participant + agent");
 });
 
+test("return to meeting resumes ended server state", async ({ page, request }) => {
+  await page.goto("/?room=E2E-RESUME&autojoin=1&name=Kevin");
+  await expect(page.locator("#participant-count")).toHaveText("1 participant + agent");
+  await page.getByRole("button", { name: "End meeting" }).click();
+  await expect(page.getByRole("button", { name: "Return to meeting" })).toBeVisible();
+
+  let state = await (await request.get("/api/sessions/E2E-RESUME/state")).json();
+  expect(state.session.status).toBe("ended");
+  await page.getByRole("button", { name: "Return to meeting" }).click();
+  await expect(page.getByRole("button", { name: "End meeting" })).toBeVisible();
+  state = await (await request.get("/api/sessions/E2E-RESUME/state")).json();
+  expect(state.session.status).toBe("live");
+  expect(state.session.ended_at).toBeNull();
+});
+
 test("projector console tracks decisions, resolves owner gaps, answers questions, and exports", async ({ page, request }) => {
   const roomId = "E2E-CONSOLE";
   const seeded = await request.post(`/api/sessions/${roomId}/utterances`, {
