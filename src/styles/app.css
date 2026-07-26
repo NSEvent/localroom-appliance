@@ -1452,3 +1452,72 @@ a {
   text-align: center;
   padding: 2rem;
 }
+
+/* ---- console tabs (diagnostic Transcription view) ---------------------- */
+.tabs { display: flex; gap: .25rem; padding: .5rem .75rem 0; }
+.tab {
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: .45rem .9rem; font: inherit; font-size: .92rem; cursor: pointer;
+  color: var(--fg-dim, #7d8590); border-radius: 6px 6px 0 0;
+}
+.tab:hover { color: var(--fg, inherit); }
+.tab.active { color: var(--fg, inherit); border-bottom-color: var(--accent, #1f6feb); font-weight: 600; }
+
+/* ---- transcription view ------------------------------------------------ */
+.transcription-view {
+  display: grid; grid-template-columns: minmax(0, 1fr) 22rem;
+  gap: .75rem; padding: .75rem; min-height: 0; flex: 1;
+}
+.transcription-main { display: flex; min-height: 0; }
+.transcription-main > * { flex: 1; min-height: 0; }
+.transcription-side { display: flex; flex-direction: column; gap: .75rem; min-height: 0; }
+@media (max-width: 1100px) { .transcription-view { grid-template-columns: 1fr; } }
+
+/* ---- audio panel: device picker + level meter -------------------------- */
+.audio-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; flex-wrap: wrap; }
+.audio-row label { font-size: .85rem; color: var(--fg-dim, #7d8590); min-width: 3.5rem; }
+.audio-row select { flex: 1; min-width: 0; padding: .35rem .5rem; font: inherit; font-size: .85rem; }
+.audio-readout { font-size: .82rem; color: var(--fg-dim, #7d8590); font-variant-numeric: tabular-nums; }
+.clip-warn { color: #f85149; }
+.silent-warn { color: #d29922; }
+.audio-error { font-size: .82rem; color: #f85149; margin: .4rem 0; }
+.audio-note { font-size: .8rem; line-height: 1.5; color: var(--fg-dim, #7d8590); margin: .6rem 0 0; }
+.audio-note.dim { opacity: .75; }
+
+.meter { margin: .5rem 0 .2rem; }
+.meter-track {
+  position: relative; height: 1.1rem; border-radius: 4px; overflow: hidden;
+  background: linear-gradient(90deg, #1f6feb 0%, #2ea043 55%, #d29922 80%, #f85149 100%);
+  filter: saturate(.35) brightness(.55);
+}
+.meter-track.clip { filter: none; box-shadow: 0 0 0 1px #f85149 inset; }
+.meter-rms {
+  position: absolute; inset: 0 auto 0 0; background: rgba(255,255,255,.16);
+  border-right: 2px solid rgba(255,255,255,.55); transition: width .15s linear;
+}
+.meter-peak {
+  position: absolute; top: 0; bottom: 0; width: 2px; background: #fff;
+  transition: left .15s linear;
+}
+.meter-target { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,.5); }
+.meter-scale {
+  display: flex; justify-content: space-between; font-size: .68rem;
+  color: var(--fg-dim, #7d8590); font-variant-numeric: tabular-nums; margin-top: .15rem;
+}
+
+/* ---- appliance mic indicator ------------------------------------------- */
+.mic-controls.appliance .mic-appliance-note {
+  display: inline-flex; align-items: center; gap: .4rem;
+  font-size: .85rem; color: var(--fg-dim, #7d8590);
+}
+.mic-dot.appliance { background: #2ea043; }
+
+/* ---- STT status block --------------------------------------------------- */
+.stt-status {
+  border: 1px solid var(--border, #30363d); border-radius: 8px; padding: .7rem .8rem;
+}
+.stt-row { display: flex; justify-content: space-between; gap: 1rem; font-size: .85rem; padding: .18rem 0; }
+.stt-key { color: var(--fg-dim, #7d8590); }
+.stt-val { font-variant-numeric: tabular-nums; }
+.stt-val.good { color: #2ea043; }
+.stt-val.bad { color: #f85149; }

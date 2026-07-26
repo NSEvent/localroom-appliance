@@ -191,5 +191,50 @@ export interface Health {
   asr: HealthComponent
   llm: HealthComponent
   gpu: string
+  /** Capture policy: the room mic is wired to the appliance, so a console
+   * viewed FROM the appliance must not hold getUserMedia itself. */
+  capture: CapturePolicy
   raw: unknown
+}
+
+export interface CapturePolicy {
+  /** true when this browser is running on the appliance (loopback client). */
+  clientIsAppliance: boolean
+  /** "off" | "on" — server's default for browser-side mic capture. */
+  browserCaptureDefault: string
+  /** ALSA id of the appliance's capture device, e.g. "plughw:1,0". */
+  applianceDevice: string | null
+}
+
+export interface AudioDevice {
+  id: string
+  card: number
+  device: number
+  name: string
+  raw_id: string
+  uninteresting: boolean
+  default: boolean
+}
+
+export interface AudioDevices {
+  devices: AudioDevice[]
+  selected: string | null
+  busy: { busy: boolean; holders: { pid: number; comm: string }[]; path?: string }
+}
+
+export interface AudioLevel {
+  ok: boolean
+  error?: string
+  busy?: boolean
+  holders?: { pid: number; comm: string }[]
+  device?: string
+  rate?: number
+  peak?: number
+  rms?: number
+  peak_pct?: number
+  rms_pct?: number
+  peak_dbfs?: number | null
+  rms_dbfs?: number | null
+  clipping?: boolean
+  silent?: boolean
 }

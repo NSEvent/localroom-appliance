@@ -3,7 +3,13 @@
 // one-file fix. Same-origin in production (meety-api serves dist/); the Vite
 // dev server proxies /api → 127.0.0.1:8000.
 
-import type { Health, SessionState, Utterance } from './types'
+import type {
+  AudioDevices,
+  AudioLevel,
+  Health,
+  SessionState,
+  Utterance,
+} from './types'
 
 const BASE = '/api'
 
@@ -164,6 +170,7 @@ export async function getHealth(): Promise<Health> {
   const asr = obj(raw.asr)
   const op = { ...obj(raw.llm), ...obj(raw.operator) }
   const gpu = obj(raw.gpu)
+  const cap = obj(raw.capture)
   const status = str(raw.status) ?? ''
   const degraded =
     raw.degraded === true ||
@@ -185,6 +192,29 @@ export async function getHealth(): Promise<Health> {
       tok_per_s: num(op.last_tok_s) ?? num(op.tok_per_s),
     },
     gpu: str(raw.gpu) ?? str(gpu.name) ?? '',
+    capture: {
+      clientIsAppliance: cap.client_is_appliance === true,
+      browserCaptureDefault: str(cap.browser_capture_default) ?? 'on',
+      applianceDevice: str(cap.appliance_device) ?? null,
+    },
     raw,
   }
+}
+
+// ---- appliance audio (device picker + level meter) ----
+
+/** Capture devices on the APPLIANCE, not the browser host. */
+export async function getAudioDevices(): Promise<AudioDevices> {
+  return request<AudioDevices>('/audio/devices')
+}
+
+/** One short appliance capture -> peak/RMS/dBFS for the level meter. */
+export async function getAudioLevel(
+  device?: string | null,
+  seconds = 0.5,
+): Promise<AudioLevel> {
+  const q = new URLSearchParams()
+  if (device) q.set('device', device)
+  q.set('seconds', String(seconds))
+  return request<AudioLevel>(`/audio/level?${q.toString()}`)
 }

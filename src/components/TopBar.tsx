@@ -10,8 +10,21 @@ import { useStore } from '../store'
  * off (no stream held) / recording (red dot pulse) / paused. Host console
  * only; capture is 5 s stop/restart MediaRecorder chunks (D22). */
 function MicToggle({ disabled }: { disabled: boolean }) {
-  const { sessionId } = useStore()
+  const { sessionId, health } = useStore()
   const { micState, micError, toggleMic, togglePause } = useMicCapture(sessionId)
+  // The room mic is wired to the appliance. When the console is being viewed
+  // FROM the appliance, browser capture is off by default — it would fight
+  // the appliance for the exclusive capture device and add nothing.
+  const onAppliance = health?.capture.clientIsAppliance ?? false
+  if (onAppliance) {
+    return (
+      <div className="mic-controls appliance" title="Capture runs on the appliance">
+        <span className="mic-appliance-note">
+          <span className="mic-dot appliance" aria-hidden /> Appliance mic
+        </span>
+      </div>
+    )
+  }
   return (
     <div className="mic-controls" title={micError ?? undefined}>
       <button
