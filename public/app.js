@@ -20,18 +20,44 @@ $("#join-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   state.name = $("#display-name").value.trim();
   state.roomId = $("#room-code").value.trim().toUpperCase();
+  const joinButton = $("#join-form button");
+  joinButton.disabled = true;
+  joinButton.innerHTML = "Requesting camera & microphone… <span>●</span>";
   try {
-    state.stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-    });
+    state.stream = await withTimeout(requestMedia(), 5000);
     enterMeeting();
-  } catch (error) {
+  } catch {
+    state.stream = new MediaStream();
+    state.muted = true;
+    state.cameraOff = true;
+    enterMeeting();
+    document.getElementById(`tile-${state.id}`)?.classList.add("camera-off");
+    $("#mic-button").classList.add("off");
+    $("#camera-button").classList.add("off");
+    $("#mic-button small").textContent = "Enable mic";
+    $("#camera-button small").textContent = "Start video";
     toast(location.protocol === "http:" && location.hostname !== "localhost"
-      ? "Microphone requires HTTPS on LAN devices."
-      : "Camera and microphone permission are required.");
+      ? "Joined without media—use HTTPS or localhost to enable mic."
+      : "Joined without media—click mic or camera to retry permission.");
   }
 });
+
+function requestMedia() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    return Promise.reject(new Error("Media capture requires a secure context"));
+  }
+  return navigator.mediaDevices.getUserMedia({
+    video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+  });
+}
+
+function withTimeout(promise, milliseconds) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Media permission timed out")), milliseconds)),
+  ]);
+}
 
 function enterMeeting() {
   $("#lobby").classList.add("hidden");
@@ -257,14 +283,22 @@ function monitorSpeaking(id, stream) {
   } catch {}
 }
 
-$("#mic-button").addEventListener("click", () => {
+$("#mic-button").addEventListener("click", async () => {
+  if (!state.stream.getAudioTracks().length) {
+    await retryMedia("audio");
+    return;
+  }
   state.muted = !state.muted;
   state.stream.getAudioTracks().forEach((track) => { track.enabled = !state.muted; });
   $("#mic-button").classList.toggle("off", state.muted);
   $("#mic-button small").textContent = state.muted ? "Unmute" : "Mute";
   sendState();
 });
-$("#camera-button").addEventListener("click", () => {
+$("#camera-button").addEventListener("click", async () => {
+  if (!state.stream.getVideoTracks().length) {
+    await retryMedia("video");
+    return;
+  }
   state.cameraOff = !state.cameraOff;
   state.stream.getVideoTracks().forEach((track) => { track.enabled = !state.cameraOff; });
   $("#camera-button").classList.toggle("off", state.cameraOff);
@@ -287,6 +321,40 @@ $("#leave-button").addEventListener("click", () => location.reload());
 
 function sendState() {
   send({ type: "state", muted: state.muted, cameraOff: state.cameraOff });
+}
+
+async function retryMedia(kind) {
+  try {
+    const constraints = kind === "audio"
+      ? { audio: { echoCancellation: true, noiseSuppression: true }, video: false }
+      : { audio: false, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } };
+    const added = await navigator.mediaDevices.getUserMedia(constraints);
+    for (const track of added.getTracks()) {
+      state.stream.addTrack(track);
+      for (const [peerId, peer] of state.peers) {
+        peer.addTrack(track, state.stream);
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        send({ type: "signal", to: peerId, data: { description: peer.localDescription } });
+      }
+    }
+    document.getElementById(`tile-${state.id}`).querySelector("video").srcObject = state.stream;
+    if (kind === "audio") {
+      state.muted = false;
+      $("#mic-button").classList.remove("off");
+      $("#mic-button small").textContent = "Mute";
+      beginTranscription();
+    } else {
+      state.cameraOff = false;
+      $("#camera-button").classList.remove("off");
+      $("#camera-button small").textContent = "Camera";
+      document.getElementById(`tile-${state.id}`)?.classList.remove("camera-off");
+    }
+    sendState();
+    toast(`${kind === "audio" ? "Microphone" : "Camera"} enabled`);
+  } catch {
+    toast(`Chrome blocked ${kind} access—allow it in the address bar.`);
+  }
 }
 function togglePanel() {
   $(".intelligence-panel").classList.toggle("hidden");
