@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
+import { formatMeetingContext } from "./meeting-context.js";
 
 const MODEL_CONFIGS = [
   {
@@ -58,12 +59,15 @@ export class LocalModelService {
     }));
   }
 
-  async answer(modelId, { question, transcript, memory }) {
+  async answer(modelId, { question, transcript, memory, meeting }) {
     const config = MODEL_CONFIGS.find((candidate) => candidate.id === modelId) || MODEL_CONFIGS[0];
     const prompt = [
       "You are LocalRoom Agent, a concise private meeting participant.",
-      "Answer in 1-3 short sentences. Use only the supplied institutional memory and meeting transcript.",
+      "Answer in 1-3 short sentences. Use only the supplied live meeting state, institutional memory, and meeting transcript.",
+      "Use live meeting state for questions about the meeting name, participants, attendance, status, and statistics.",
       "When citing memory, include its [[wiki-slug]]. Never claim an external action succeeded.",
+      "",
+      formatMeetingContext(meeting),
       "",
       `INSTITUTIONAL MEMORY:\n${memory}`,
       `RECENT TRANSCRIPT:\n${transcript}`,

@@ -22,7 +22,7 @@ test("media client has WebRTC and isolated transcription paths", () => {
   assert.match(js, /new MediaStream\(this\.stream\.getAudioTracks\(\)\)/);
   assert.match(js, /x-participant-id/);
   assert.match(js, /\/api\/transcribe/);
-  assert.match(js, /speechFrames >= 3/);
+  assert.match(js, /new UtteranceSegmenter\(\)/);
   assert.match(js, /turn:172\.16\.10\.189:3478/);
   assert.match(js, /autoGainControl: false/);
   assert.match(js, /x-audio-snr-db/);

@@ -1,3 +1,5 @@
+import { UtteranceSegmenter } from "./utterance-segmenter.js";
+
 export class MeetingMedia {
   constructor({ id, roomId, onTile, onRemove, onSpeaking, onState, onToast, onASR }) {
     Object.assign(this, { id, roomId, onTile, onRemove, onSpeaking, onState, onToast, onASR });
@@ -139,25 +141,17 @@ export class MeetingMedia {
     const context = new AudioContext();
     const source = context.createMediaStreamSource(new MediaStream(this.stream.getAudioTracks()));
     const processor = context.createScriptProcessor(4096, 1, 1);
-    let samples = [], speechFrames = 0, noiseFloor = .006, maxRms = 0;
-    let currentWindow = Math.floor(Date.now() / 2000);
+    const segmenter = new UtteranceSegmenter();
     processor.onaudioprocess = ({ inputBuffer }) => {
-      if (!this.transcriptionActive || this.muted) return;
-      const frame = new Float32Array(inputBuffer.getChannelData(0));
-      const rms = Math.sqrt(frame.reduce((sum, sample) => sum + sample * sample, 0) / frame.length);
-      if (rms > Math.max(.012, noiseFloor * 2.8)) speechFrames += 1;
-      else noiseFloor = noiseFloor * .96 + rms * .04;
-      maxRms = Math.max(maxRms, rms);
-      const windowId = Math.floor(Date.now() / 2000);
-      if (windowId !== currentWindow) {
-        const segment = samples;
-        const shouldTranscribe = speechFrames >= 3;
-        const snrDb = 20 * Math.log10(Math.max(maxRms, .00001) / Math.max(noiseFloor, .00001));
-        const completedWindow = currentWindow;
-        samples = []; speechFrames = 0; maxRms = 0; currentWindow = windowId;
-        if (shouldTranscribe) this.transcribe(encodeWav(segment, context.sampleRate), completedWindow, snrDb);
+      if (!this.transcriptionActive || this.muted) {
+	segmenter.reset();
+	return;
       }
-      samples.push(frame);
+      const frame = new Float32Array(inputBuffer.getChannelData(0));
+      const utterance = segmenter.push(frame, context.sampleRate);
+      if (!utterance) return;
+      const windowId = Math.floor(Date.now() / 2000);
+      this.transcribe(encodeWav(utterance.frames, context.sampleRate), windowId, utterance.snrDb);
     };
     source.connect(processor);
     processor.connect(context.destination);

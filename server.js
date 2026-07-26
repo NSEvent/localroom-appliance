@@ -14,6 +14,7 @@ import { AuditTrail, LocalModelService, LocalSpeechService } from "./local-servi
 import { WorkspaceActions } from "./workspace-actions.js";
 import { corpusStats } from "./corpus-index.js";
 import { Glossary, RecognitionArchive } from "./transcript-quality.js";
+import { buildMeetingContext } from "./meeting-context.js";
 
 const PORT = Number(process.env.PORT || 4173);
 const ASR_URL = (process.env.ASR_URL || "http://172.16.10.189:8001").replace(/\/$/, "");
@@ -273,7 +274,8 @@ async function answerAgent(roomId, question, actorName) {
     const transcript = room.captions.slice(-16).map((item) => `${item.name}: ${item.text}`).join("\n");
     const memory = demoMemory.map((page) =>
       `[[${page.slug}]] ${page.summary}\n${page.facts.join("\n")}`).join("\n\n");
-    const result = await models.answer(room.model, { question, transcript, memory });
+    const meeting = buildMeetingContext(room);
+    const result = await models.answer(room.model, { question, transcript, memory, meeting });
     answer = { answer: result.text, citations: extractCitations(result.text) };
     modelInfo = result;
   }
