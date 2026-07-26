@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from '../api'
 import { SourcesBar } from './SourcesBar'
+import { useMicCapture } from '../mic'
 import { useStore } from '../store'
 import { mmss } from '../time'
 import type { AudioDevice, AudioLevel, CaptureStatus } from '../types'
@@ -26,8 +27,51 @@ function meterFraction(dbfs: number | null | undefined): number {
   return Math.min(1, (dbfs + 60) / 60)
 }
 
-function ControlRow() {
+/** Browser-mic control for a participant on their own device.
+ *
+ * Distinct from the appliance Record button: that attaches the room recorder,
+ * which is not this person's microphone. A participant who pressed it would
+ * hear the meeting start transcribing and reasonably assume they were being
+ * captured, while their own stream stayed silent. */
+function ParticipantMic({ sourceId }: { sourceId: string }) {
   const { sessionId } = useStore()
+  const { micState, micError, toggleMic, togglePause } =
+    useMicCapture(sessionId, sourceId)
+  const on = micState === 'recording'
+  return (
+    <>
+      <button
+        type="button"
+        className={`rec-btn ${on ? 'on' : ''}`}
+        onClick={toggleMic}
+        aria-pressed={micState !== 'off'}
+      >
+        <span className="rec-dot" aria-hidden />
+        {micState === 'off' ? 'Share my mic'
+          : on ? 'Stop sharing' : 'Paused'}
+      </button>
+      {micState !== 'off' && (
+        <button type="button" className="btn btn-outline" onClick={togglePause}>
+          {on ? 'Pause' : 'Resume'}
+        </button>
+      )}
+      <span className="ctl-readout">
+        {micState === 'off' ? 'your mic is off'
+          : on ? 'streaming to your channel' : 'paused'}
+      </span>
+      {micError && <span className="ctl-error">{micError}</span>}
+      {!window.isSecureContext && (
+        <span className="ctl-error">
+          not a secure origin — use the https:// address
+        </span>
+      )}
+    </>
+  )
+}
+
+
+function ControlRow() {
+  const { sessionId, sourceId, health } = useStore()
   const [devices, setDevices] = useState<AudioDevice[]>([])
   const [selected, setSelected] = useState<string | null>(null)
   const [capture, setCapture] = useState<CaptureStatus | null>(null)
@@ -104,6 +148,19 @@ function ControlRow() {
   const peak = meterFraction(level?.peak_dbfs)
   const rms = meterFraction(level?.rms_dbfs)
   const meterState = level?.clipping ? 'clip' : level?.silent ? 'silent' : 'ok'
+
+  const isAppliance = health?.capture.clientIsAppliance ?? false
+
+  // A remote participant controls THEIR microphone, not the room's. Showing
+  // them the appliance Record button would let them start the room recorder
+  // and believe it was capturing them.
+  if (!isAppliance && sourceId) {
+    return (
+      <div className="ctl">
+        <ParticipantMic sourceId={sourceId} />
+      </div>
+    )
+  }
 
   return (
     <div className="ctl">
