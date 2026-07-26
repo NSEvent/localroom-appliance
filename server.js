@@ -7,11 +7,13 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { WebSocketServer } from "ws";
 import express from "express";
+import { selectSpeakerCandidate } from "./audio-arbitration.js";
 
 const PORT = Number(process.env.PORT || 4173);
 const ASR_URL = (process.env.ASR_URL || "http://172.16.10.189:8001").replace(/\/$/, "");
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024;
 const rooms = new Map();
+const pendingAudioWindows = new Map();
 
 const app = express();
 app.disable("x-powered-by");
@@ -44,11 +46,62 @@ app.post("/api/transcribe", express.raw({ type: "*/*", limit: MAX_AUDIO_BYTES })
     return response.status(400).json({ error: "Invalid audio stream." });
   }
 
-  const started = performance.now();
   try {
     const wav = await normalizeAudio(request.body);
+    queueAudioCandidate({
+      roomId,
+      participantId,
+      participant,
+      wav,
+      response,
+      started: performance.now(),
+      windowId: clean(request.header("x-audio-window"), 30),
+      snrDb: Number(request.header("x-audio-snr-db")),
+    });
+  } catch (error) {
+    response.status(502).json({ error: "Dell ASR unavailable", detail: error.message });
+  }
+});
+
+function queueAudioCandidate(candidate) {
+  const serverWindow = Math.floor(Date.now() / 2000);
+  const clientWindow = Number(candidate.windowId);
+  const safeWindow = Number.isFinite(clientWindow) && Math.abs(clientWindow - serverWindow) <= 1
+    ? clientWindow
+    : serverWindow;
+  const key = `${candidate.roomId}:${safeWindow}`;
+  let pending = pendingAudioWindows.get(key);
+  if (!pending) {
+    pending = { candidates: [], timer: setTimeout(() => flushAudioWindow(key), 700) };
+    pendingAudioWindows.set(key, pending);
+  }
+  pending.candidates.push(candidate);
+}
+
+async function flushAudioWindow(key) {
+  const pending = pendingAudioWindows.get(key);
+  if (!pending) return;
+  pendingAudioWindows.delete(key);
+  const selection = selectSpeakerCandidate(pending.candidates);
+
+  for (const candidate of pending.candidates) {
+    if (candidate !== selection.winner && !candidate.response.headersSent) {
+      candidate.response.json({
+        suppressed: true,
+        reason: selection.reason,
+        confidence: selection.confidence,
+      });
+    }
+  }
+  if (!selection.winner) {
+    console.log(`audio arbitration ${key} suppressed=${selection.reason}`);
+    return;
+  }
+
+  const winner = selection.winner;
+  try {
     const form = new FormData();
-    form.append("file", new Blob([wav], { type: "audio/wav" }), `${participantId}.wav`);
+    form.append("file", new Blob([winner.wav], { type: "audio/wav" }), `${winner.participantId}.wav`);
     const upstream = await fetch(`${ASR_URL}/transcribe`, {
       method: "POST",
       body: form,
@@ -60,18 +113,20 @@ app.post("/api/transcribe", express.raw({ type: "*/*", limit: MAX_AUDIO_BYTES })
     const event = {
       type: "caption",
       id: crypto.randomUUID(),
-      participantId,
-      name: participant.name,
+      participantId: winner.participantId,
+      name: winner.participant.name,
       text,
       at: new Date().toISOString(),
-      latencyMs: Math.round(performance.now() - started),
+      latencyMs: Math.round(performance.now() - winner.started),
+      attributionConfidence: selection.confidence,
+      separationDb: selection.separationDb,
     };
-    if (text) broadcast(roomId, event);
-    response.json(event);
+    if (text) broadcast(winner.roomId, event);
+    winner.response.json(event);
   } catch (error) {
-    response.status(502).json({ error: "Dell ASR unavailable", detail: error.message });
+    winner.response.status(502).json({ error: "Dell ASR unavailable", detail: error.message });
   }
-});
+}
 
 const tlsKey = process.env.TLS_KEY;
 const tlsCert = process.env.TLS_CERT;

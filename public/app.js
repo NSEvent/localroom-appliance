@@ -60,7 +60,7 @@ function requestMedia() {
   }
   return navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
   });
 }
 
@@ -202,36 +202,49 @@ function beginTranscription() {
   let samples = [];
   let speechFrames = 0;
   let noiseFloor = 0.006;
-  let segmentStarted = performance.now();
+  let maxRms = 0;
+  let currentWindow = Math.floor(Date.now() / 2000);
   processor.onaudioprocess = ({ inputBuffer }) => {
     if (!state.transcriptionActive || state.muted) return;
     const frame = new Float32Array(inputBuffer.getChannelData(0));
-    samples.push(frame);
     const rms = Math.sqrt(frame.reduce((sum, sample) => sum + sample * sample, 0) / frame.length);
     const speechThreshold = Math.max(0.012, noiseFloor * 2.8);
     if (rms > speechThreshold) speechFrames += 1;
     else noiseFloor = noiseFloor * 0.96 + rms * 0.04;
-    if (performance.now() - segmentStarted >= 4200) {
+    maxRms = Math.max(maxRms, rms);
+    const windowId = Math.floor(Date.now() / 2000);
+    if (windowId !== currentWindow) {
       const segment = samples;
       const shouldTranscribe = speechFrames >= 3;
       samples = [];
       speechFrames = 0;
-      segmentStarted = performance.now();
-      if (shouldTranscribe) transcribe(encodeWav(segment, context.sampleRate));
+      const snrDb = 20 * Math.log10(Math.max(maxRms, 0.00001) / Math.max(noiseFloor, 0.00001));
+      maxRms = 0;
+      const completedWindow = currentWindow;
+      currentWindow = windowId;
+      if (shouldTranscribe) transcribe(encodeWav(segment, context.sampleRate), completedWindow, snrDb);
     }
+    samples.push(frame);
   };
   source.connect(processor);
   processor.connect(context.destination);
 }
 
-async function transcribe(blob) {
+async function transcribe(blob, windowId, snrDb) {
   try {
     const response = await fetch("/api/transcribe", {
       method: "POST",
-      headers: { "content-type": blob.type, "x-participant-id": state.id, "x-room-id": state.roomId },
+      headers: {
+        "content-type": blob.type,
+        "x-participant-id": state.id,
+        "x-room-id": state.roomId,
+        "x-audio-window": String(windowId),
+        "x-audio-snr-db": snrDb.toFixed(2),
+      },
       body: blob,
     });
     if (!response.ok) throw new Error();
+    setAsrState(true, "Local AI ready");
   } catch {
     setAsrState(false, "Local AI reconnecting");
   }
@@ -256,7 +269,10 @@ function showCaption(caption) {
     entry.dataset.participantId = caption.participantId;
     entry.dataset.at = caption.at;
     const color = speakerColor(caption.participantId);
-    entry.innerHTML = `<div class="meta"><span class="speaker-dot" style="background:${color};box-shadow:0 0 7px ${color}66"></span><b>${escapeHtml(caption.name)}</b><span>${new Date(caption.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span><span class="latency">${caption.latencyMs}ms local</span></div><p>${escapeHtml(caption.text)}</p>`;
+    const confidence = caption.attributionConfidence == null
+      ? ""
+      : ` · ${Math.round(caption.attributionConfidence * 100)}% speaker`;
+    entry.innerHTML = `<div class="meta"><span class="speaker-dot" style="background:${color};box-shadow:0 0 7px ${color}66"></span><b>${escapeHtml(caption.name)}</b><span>${new Date(caption.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span><span class="latency">${caption.latencyMs}ms local${confidence}</span></div><p>${escapeHtml(caption.text)}</p>`;
     $("#transcript").append(entry);
   }
   $("#transcript").scrollTop = $("#transcript").scrollHeight;
@@ -361,7 +377,7 @@ function sendState() {
 async function retryMedia(kind) {
   try {
     const constraints = kind === "audio"
-      ? { audio: { echoCancellation: true, noiseSuppression: true }, video: false }
+      ? { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false }, video: false }
       : { audio: false, video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" } };
     const added = await navigator.mediaDevices.getUserMedia(constraints);
     for (const track of added.getTracks()) {
@@ -469,3 +485,8 @@ function encodeWav(chunks, inputRate) {
 
 const roomParam = new URLSearchParams(location.search).get("room");
 if (roomParam) $("#room-code").value = roomParam.toUpperCase();
+const autoJoinParams = new URLSearchParams(location.search);
+if (autoJoinParams.get("autojoin") === "1") {
+  $("#display-name").value = autoJoinParams.get("name") || "LocalRoom iOS";
+  requestAnimationFrame(() => $("#join-form").requestSubmit());
+}

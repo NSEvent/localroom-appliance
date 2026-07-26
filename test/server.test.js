@@ -25,4 +25,7 @@ test("signaling client has WebRTC and isolated transcription paths", () => {
   assert.match(js, /continuesTurn/);
   assert.match(js, /speakerColor/);
   assert.match(js, /turn:172\.16\.10\.189:3478/);
+  assert.match(js, /autoGainControl: false/);
+  assert.match(js, /x-audio-snr-db/);
+  assert.match(js, /setAsrState\(true, "Local AI ready"\)/);
 });
