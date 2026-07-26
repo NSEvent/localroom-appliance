@@ -13,7 +13,11 @@ import { answerFromMemory, demoMemory, extractWakePrompt, RoomIntelligence } fro
 import { AuditTrail, LocalModelService, LocalSpeechService } from "./local-services.js";
 import { WorkspaceActions } from "./workspace-actions.js";
 import { corpusStats } from "./corpus-index.js";
-import { Glossary, RecognitionArchive } from "./transcript-quality.js";
+import {
+  DEFAULT_GLOSSARY_ENTRIES,
+  Glossary,
+  RecognitionArchive,
+} from "./transcript-quality.js";
 import { buildMeetingContext } from "./meeting-context.js";
 
 const PORT = Number(process.env.PORT || 4173);
@@ -27,15 +31,7 @@ const models = new LocalModelService();
 const speech = new LocalSpeechService({ outputDir: GENERATED_DIR });
 const audit = new AuditTrail(path.join(DATA_DIR, "audit.jsonl"));
 const workspace = new WorkspaceActions(path.join(DATA_DIR, "workspace"));
-const glossary = new Glossary([
-  { term: "LocalRoom", aliases: ["local room"] },
-  { term: "Pork Chop", aliases: ["porkchop", "pork shop"] },
-  { term: "Project Iliad", aliases: ["project illy ad", "project iliot"] },
-  { term: "Qwen", aliases: ["Quinn", "queen"] },
-  { term: "Nemotron", aliases: ["nemo tron"] },
-  { term: "Parakeet", aliases: ["parrot key"] },
-  { term: "OpenShell", aliases: ["open shell"] },
-]);
+const glossary = new Glossary(DEFAULT_GLOSSARY_ENTRIES);
 const recognitions = new RecognitionArchive(path.join(DATA_DIR, "recognitions.jsonl"));
 const pendingAudioWindows = new Map();
 let modelCatalog = [];

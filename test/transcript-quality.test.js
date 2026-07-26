@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import {
   checkCorrection,
+  DEFAULT_GLOSSARY_ENTRIES,
   Glossary,
   phoneticKey,
   RecognitionArchive,
@@ -38,6 +39,15 @@ test("glossary applies explicit aliases through the correction guard", () => {
   assert.equal(result.accepted, true);
   assert.equal(result.text, "Pork Chop, prove the OpenShell denial.");
   assert.equal(result.changes.length, 2);
+});
+
+test("default glossary never rewrites project as Parakeet", () => {
+  const glossary = new Glossary(DEFAULT_GLOSSARY_ENTRIES);
+  const result = glossary.correct("This project needs the full sentence context.");
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.text, "This project needs the full sentence context.");
+  assert.equal(DEFAULT_GLOSSARY_ENTRIES.some((entry) => entry.term === "Parakeet"), false);
 });
 
 test("recognitions append instead of overwriting earlier model opinions", () => {

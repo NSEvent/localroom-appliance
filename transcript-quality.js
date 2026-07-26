@@ -12,6 +12,15 @@ const EQUIVALENTS = [
 ];
 const COMMON = new Set("a an and are as at be by can do for from has have i in is it my no not of on or our that the their this to we what when who will with you your".split(" "));
 
+export const DEFAULT_GLOSSARY_ENTRIES = [
+  { term: "LocalRoom", aliases: ["local room"] },
+  { term: "Pork Chop", aliases: ["porkchop", "pork shop"] },
+  { term: "Project Iliad", aliases: ["project illy ad", "project iliot"] },
+  { term: "Qwen", aliases: ["Quinn", "queen"] },
+  { term: "Nemotron", aliases: ["nemo tron"] },
+  { term: "OpenShell", aliases: ["open shell"] },
+];
+
 export function phoneticKey(value) {
   let word = String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
   if (!word) return "";
