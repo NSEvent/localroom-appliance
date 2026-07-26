@@ -361,7 +361,7 @@ export function answerFromMemory(question) {
 
 export function extractWakePrompt(text) {
   const match = String(text).match(
-    /^\s*(?:hey[\s,]+)?(?:wagyu|wag[\s-]+you)(?:[\s,:—-]+)(.+?)\s*$/i);
+    /^\s*(?:hey[\s,]+)?(?:pork[\s-]*(?:chop|shop))(?:[\s,:—-]+)(.+?)\s*$/i);
   return match?.[1]?.trim() || null;
 }
 

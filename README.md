@@ -77,5 +77,6 @@ The lower-left `⌘` opens the discreet demo director. It injects transcript mom
 the same server path as live ASR; cards, policies, votes, actions, and synchronization are
 not mocked.
 
-Say **“Wagyu, …”** to address the room agent hands-free. The wake-word parser also accepts
-the common ASR rendering “wag you”; ordinary conversation does not trigger an agent reply.
+Say **“Pork Chop, …”** to address the room agent hands-free. The wake-word parser also accepts
+the common ASR renderings “porkchop” and “pork shop”; ordinary conversation does not trigger
+an agent reply.

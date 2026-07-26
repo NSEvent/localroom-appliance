@@ -130,13 +130,14 @@ test("institutional memory answers are grounded with wiki-style citations", () =
   assert.deepEqual(result.citations, ["[[cancellation-review-2026-07-19]]", "[[project-iliad]]"]);
 });
 
-test("Wagyu wake word tolerates likely ASR spellings", () => {
+test("Pork Chop wake word tolerates likely ASR spellings", () => {
   assert.equal(
-    extractWakePrompt("Wagyu, can you remind me what Project Iliad is?"),
+    extractWakePrompt("Pork Chop, can you remind me what Project Iliad is?"),
     "can you remind me what Project Iliad is?");
   assert.equal(
-    extractWakePrompt("Hey wag you — who owns the revised flow?"),
+    extractWakePrompt("Hey pork shop — who owns the revised flow?"),
     "who owns the revised flow?");
+  assert.equal(extractWakePrompt("Porkchop: what did we decide?"), "what did we decide?");
   assert.equal(extractWakePrompt("Can you remind me what Project Iliad is?"), null);
 });
 
