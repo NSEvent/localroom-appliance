@@ -52,7 +52,14 @@ export class RoomIntelligence {
     const room = this.room(roomId);
     room.captions.push(caption);
     room.transcriptVersion += 1;
+    if (caption.source === "agent") return [];
     return this.detectCards(room, caption);
+  }
+
+  proposeTaskFromPrompt(roomId, prompt, actorName) {
+    const commitment = parseAgentTask(prompt, actorName);
+    if (!commitment) return null;
+    return this.propose(roomId, commitmentCard(commitment, prompt, "Task requested"));
   }
 
   detectCards(room, caption) {
@@ -82,20 +89,7 @@ export class RoomIntelligence {
 
     const commitment = isDecision ? null : parseCommitment(text, caption.name);
     if (commitment) {
-      proposals.push(this.propose(room.id, {
-        type: "commitment",
-        eyebrow: "Commitment detected",
-        title: commitment.task,
-        detail: `${commitment.owner} · ${commitment.due}`,
-        evidence: text,
-        confidence: 0.91,
-        metadata: commitment,
-        actions: [
-          { id: "accept", label: "Accept commitment", primary: true },
-          { id: "assign-me", label: "Assign to me" },
-          { id: "dismiss", label: "Dismiss" },
-        ],
-      }));
+      proposals.push(this.propose(room.id, commitmentCard(commitment, text, "Commitment detected")));
     }
 
     const disclosure = parseDisclosure(text);
@@ -366,6 +360,60 @@ function parseCommitment(text, speaker) {
   let task = match[2].trim().replace(/\s+by\s+(today|tomorrow|Friday|Monday|Tuesday|Wednesday|Thursday|Saturday|Sunday|end of (?:the )?day|EOD|next week)$/i, "");
   task = task.charAt(0).toUpperCase() + task.slice(1);
   return { task, owner, due: match[3] || "No deadline captured" };
+}
+
+function parseAgentTask(text, actorName) {
+  const clean = text.trim().replace(/[.!?]+$/, "");
+  const withoutLead = clean.replace(
+    /^(?:(?:hey\s+)?local\s*room[,\s]+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?/i, "");
+  let owner = actorName;
+  let task;
+
+  let match = withoutLead.match(/^remind\s+me\s+to\s+(.+)$/i);
+  if (match) task = match[1];
+
+  if (!task) {
+    match = withoutLead.match(
+      /^(?:create|add|capture|record|track)\s+(?:a\s+)?(?:task|action item|commitment)(?:\s+for\s+(.+?))?\s+(?:to|that)\s+(.+)$/i);
+    if (match) {
+      owner = match[1]?.trim() || actorName;
+      task = match[2];
+    }
+  }
+
+  if (!task) {
+    match = withoutLead.match(/^make\s+sure\s+(I|we|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(.+)$/);
+    if (match) {
+      owner = /^I$/i.test(match[1]) ? actorName : (/^we$/i.test(match[1]) ? "Team" : match[1]);
+      task = match[2];
+    }
+  }
+
+  if (!task) return null;
+  const dueMatch = task.match(
+    /\s+by\s+(today|tomorrow|Friday|Monday|Tuesday|Wednesday|Thursday|Saturday|Sunday|end of (?:the )?day|EOD|next week)$/i);
+  const due = dueMatch?.[1] || "No deadline captured";
+  if (dueMatch) task = task.slice(0, dueMatch.index);
+  task = task.trim();
+  task = task.charAt(0).toUpperCase() + task.slice(1);
+  return { task, owner, due };
+}
+
+function commitmentCard(commitment, evidence, eyebrow) {
+  return {
+    type: "commitment",
+    eyebrow,
+    title: commitment.task,
+    detail: `${commitment.owner} · ${commitment.due}`,
+    evidence,
+    confidence: 0.93,
+    metadata: commitment,
+    actions: [
+      { id: "accept", label: "Accept commitment", primary: true },
+      { id: "assign-me", label: "Assign to me" },
+      { id: "dismiss", label: "Dismiss" },
+    ],
+  };
 }
 
 function parseDisclosure(text) {

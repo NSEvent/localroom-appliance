@@ -53,6 +53,35 @@ test("commitment resolution creates an always-on monitored obligation", () => {
   });
 });
 
+test("natural agent prompts create confirmable task cards", () => {
+  const system = harness();
+  const room = system.room("DELL-DEMO");
+  const reminder = system.proposeTaskFromPrompt(
+    room.id, "Can you remind me to send the revised prototype to Legal by Friday?", "Kevin Tang");
+  assert.equal(reminder.type, "commitment");
+  assert.equal(reminder.title, "Send the revised prototype to Legal");
+  assert.equal(reminder.metadata.owner, "Kevin Tang");
+  assert.equal(reminder.metadata.due, "Friday");
+
+  system.resolve(room.id, {
+    cardId: reminder.id, version: 1, action: "accept", actorId: "kevin", actorName: "Kevin Tang",
+  });
+  const assigned = system.proposeTaskFromPrompt(
+    room.id, "Create a task for Maya Chen to prepare the legal review by tomorrow.", "Kevin Tang");
+  assert.equal(assigned.metadata.owner, "Maya Chen");
+  assert.equal(assigned.metadata.task, "Prepare the legal review");
+  assert.equal(assigned.metadata.due, "tomorrow");
+});
+
+test("agent answers do not invent commitments from their own speech", () => {
+  const system = harness();
+  const proposals = system.addCaption("DELL-DEMO", {
+    ...caption("I will monitor that task for you.", "LocalRoom Agent"),
+    source: "agent",
+  });
+  assert.deepEqual(proposals, []);
+});
+
 test("poll stays open until all participants vote and rejects repeat votes", () => {
   const system = harness();
   const room = system.room("DELL-DEMO");

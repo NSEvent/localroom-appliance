@@ -224,7 +224,11 @@ function selectVoice(meta, voiceId) {
 async function answerAgent(roomId, question, actorName) {
   const room = intelligence.room(roomId);
   broadcast(roomId, { type: "agent-status", status: "thinking", question, actorName });
-  let answer = answerFromMemory(question);
+  const taskCard = intelligence.proposeTaskFromPrompt(roomId, question, actorName);
+  let answer = taskCard ? {
+    answer: `I captured “${taskCard.title}” for ${taskCard.metadata.owner}${taskCard.metadata.due === "No deadline captured" ? ". Confirm the shared task card to start monitoring it." : ` by ${taskCard.metadata.due}. Confirm the shared task card to start monitoring it.`}`,
+    citations: [],
+  } : answerFromMemory(question);
   let modelInfo = { model: room.model, latencyMs: 34, grounded: true };
   if (!answer) {
     const transcript = room.captions.slice(-16).map((item) => `${item.name}: ${item.text}`).join("\n");
