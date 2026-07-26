@@ -74,6 +74,10 @@ function withTimeout(promise, milliseconds) {
 function enterMeeting() {
   $("#lobby").classList.add("hidden");
   $("#meeting").classList.remove("hidden");
+  if (window.matchMedia("(max-width: 700px)").matches) {
+    $(".intelligence-panel").classList.add("hidden");
+    $("#transcript-button").classList.remove("active");
+  }
   $("#meeting-code-label").textContent = state.roomId;
   state.startedAt = Date.now();
   addVideoTile(state.id, state.name, state.stream, true);
