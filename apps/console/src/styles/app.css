@@ -1600,3 +1600,31 @@ a {
 }
 .src-buf { color: #d29922; }
 .src-note { font-size: .72rem; color: #2ea043; }
+
+/* ---- virtual-clock debug HUD (?clockhud=1) ------------------------------ */
+.clock-hud {
+  position: fixed; left: .75rem; bottom: .75rem; z-index: 60;
+  display: flex; flex-direction: column; gap: .25rem;
+  padding: .5rem .7rem; border-radius: .5rem;
+  background: var(--surface-raised, #161b22);
+  border: 1px solid var(--border, #30363d);
+  box-shadow: var(--shadow, 0 4px 16px rgba(0,0,0,.4));
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: .78rem; font-variant-numeric: tabular-nums;
+  color: var(--text-secondary, #c9d1d9);
+}
+.clock-hud-row { display: flex; align-items: center; gap: .5rem; }
+.clock-hud-key {
+  min-width: 2.6rem; color: var(--text-faint, #7d8590);
+  text-transform: uppercase; letter-spacing: .04em; font-size: .68rem;
+}
+.clock-hud-val { color: var(--text-primary, #e6edf3); }
+.clock-hud-val.strong { font-size: 1rem; color: var(--text-strong, #fff); }
+.clock-hud-mode {
+  padding: .05rem .4rem; border-radius: 999px; font-size: .68rem;
+  border: 1px solid var(--border, #30363d); color: var(--text-faint, #7d8590);
+}
+.clock-hud-mode.demo { border-color: var(--warn, #d29922); color: var(--warn, #d29922); }
+.clock-hud-state.playing { color: var(--success, #2ea043); }
+.clock-hud-state.paused { color: var(--warn, #d29922); }
+.clock-hud-foot { color: var(--text-faint, #7d8590); font-size: .68rem; }

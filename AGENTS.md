@@ -11,6 +11,23 @@ Monorepo for the Dell × NVIDIA hackathon build.
 - `localroom-core.js` — room cards, polls, policy, models, handoff.
 - `meeting-record.js` — authoritative structured operator record and alerts.
 - `transcript-quality.js` — glossary repair guard and recognition history.
+- `apps/console/src/clock.ts` — the one virtual clock (see below).
+
+## One virtual clock
+
+Every visible number in the console — LIVE mm:ss, "updated N ago", inference
+age, UNANSWERED — derives from `apps/console/src/clock.ts`. It is the ONLY file
+under `apps/console/src` allowed to call `Date.now`, `new Date()`,
+`setInterval`, or `requestAnimationFrame`; `npm run check:console-clock` fails
+the build otherwise. A stray clock in one panel keeps that panel counting while
+the rest of the screen is paused, which desyncs the transcript from the clock
+mid-demo.
+
+Live mode anchors to `session.started_at` + wall time. Demo mode (`?demo=1`,
+fixed at boot) advances by rAF × `DEMO_TIME_SCALE` only while playing: Space
+pauses, ←/→ jump beat boundaries. `?clockhud=1` shows the debug readout. Beat
+positions live in `apps/console/src/beats.ts`; the pure, testable half of the
+clock is `apps/console/src/clock-core.ts`.
 
 ## Commands
 

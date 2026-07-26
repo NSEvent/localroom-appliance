@@ -5,6 +5,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import * as api from './api'
+import { isDemo, usePresenterKeys } from './clock.ts'
+import { ClockHud } from './components/ClockHud'
 import { Console } from './components/Console'
 import { HostSetup } from './components/HostSetup'
 import { PresenterControls } from './components/PresenterControls'
@@ -26,6 +28,8 @@ function useTheme(): [Theme, (t: Theme) => void] {
 interface Route {
   name: 'setup' | 'console' | 'presenter' | 'unknown'
   sessionId?: string
+  /** ?clockhud=1 — dev-only virtual-clock readout. */
+  hud?: boolean
 }
 
 function parseRoute(pathname: string, search: string): Route {
@@ -40,9 +44,19 @@ function parseRoute(pathname: string, search: string): Route {
     return {
       name: presenter ? 'presenter' : 'console',
       sessionId: m[1],
+      hud: q.get('clockhud') === '1',
     }
   }
   return { name: 'unknown' }
+}
+
+/** Lane E renders nothing on the projector. Its only surface is the presenter
+ * keyboard (demo mode only) and an opt-in debug HUD. Mode was fixed at boot in
+ * main.tsx, so `isDemo()` is stable for the life of the page. */
+function ClockStage({ hud }: { hud: boolean }) {
+  const demo = isDemo()
+  usePresenterKeys(demo)
+  return hud ? <ClockHud /> : null
 }
 
 function ConsoleLanding({
@@ -104,6 +118,7 @@ export default function App() {
         <SessionProvider sessionId={route.sessionId!}>
           <div className="app">
             <Console />
+            <ClockStage hud={!!route.hud} />
           </div>
         </SessionProvider>
       )
@@ -112,6 +127,7 @@ export default function App() {
         <SessionProvider sessionId={route.sessionId!}>
           <div className="app">
             <PresenterControls />
+            <ClockStage hud={!!route.hud} />
           </div>
         </SessionProvider>
       )

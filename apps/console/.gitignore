@@ -12,6 +12,15 @@ node_modules
 # repo bundle onto a machine with no npm registry. Without a committed dist,
 # meety_api mounts nothing and the console 404s at "/" (hit for real on
 # 2026-07-26). Rebuild with `npm run build` and commit the result.
+#
+# A developer's GLOBAL gitignore very often carries a blanket `dist/`, which
+# silently swallows the freshly-hashed bundle: the old assets show up deleted,
+# the new ones never appear as untracked, and the commit ships a dist that
+# points at files which no longer exist. Repo rules beat the global file, so
+# re-include it here — directory first, because git cannot re-include a file
+# whose parent directory is excluded.
+!dist/
+!dist/**
 dist-ssr
 *.local
 

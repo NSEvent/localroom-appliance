@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react'
 import * as api from './api'
+import * as clock from './clock.ts'
 import type { Health, QaEntry, SessionState, Utterance, WsEvent } from './types'
 
 export type WsStatus = 'connecting' | 'open' | 'reconnecting'
@@ -53,7 +54,7 @@ function reducer(s: AppState, a: Action): AppState {
         loading: false,
         loadError: null,
         pendingUtterances: 0,
-        lastStateAt: Date.now(),
+        lastStateAt: clock.nowMs(),
       }
     case 'load-error':
       return { ...s, loading: false, loadError: a.error }
@@ -64,7 +65,7 @@ function reducer(s: AppState, a: Action): AppState {
         ...s,
         session: { ...s.session, utterances: [...s.session.utterances, a.utterance] },
         pendingUtterances: s.pendingUtterances + 1,
-        lastUtteranceAt: Date.now(),
+        lastUtteranceAt: clock.nowMs(),
       }
     }
     case 'qa-answered': {
@@ -221,7 +222,19 @@ export function SessionProvider({
     }
   }, [sessionId])
 
+  // ---- anchor the one virtual clock to this session ----
+  // Live mode derives meeting time from started_at + wall clock. Re-asserting
+  // an unchanged anchor is a no-op, so this is safe on every state update.
+  const startedAt = state.session?.session.started_at ?? null
+  useEffect(() => {
+    clock.configureLive(startedAt)
+  }, [startedAt])
+
   // ---- runtime status: poll the aggregated health endpoint ----
+  // Rides clock.everyWallMs, not setInterval: the health probe is a network
+  // poll, not a displayed counter, so it must keep running through a demo
+  // pause — but the timer still belongs to the clock module so the ban on
+  // component-level timers stays absolute.
   useEffect(() => {
     let stop = false
     const tick = () => {
@@ -235,10 +248,10 @@ export function SessionProvider({
         })
     }
     tick()
-    const t = setInterval(tick, 5000)
+    const cancel = clock.everyWallMs(5000, tick)
     return () => {
       stop = true
-      clearInterval(t)
+      cancel()
     }
   }, [sessionId])
 

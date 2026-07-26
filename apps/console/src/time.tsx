@@ -1,36 +1,25 @@
-import { useEffect, useState } from 'react'
+// Display helpers over the one virtual clock. This file used to own a
+// `useNow()` built on `setInterval(() => setNow(Date.now()), 1000)` — a second
+// clock, per mounted panel, that no pause could reach. Everything time-shaped
+// now derives from src/clock.ts; see the ban enforced by
+// scripts/console-clock-check.js.
 
-/** mm:ss from a ts_start in seconds. */
-export function mmss(seconds: number): string {
-  const s = Math.max(0, Math.floor(seconds))
-  const m = Math.floor(s / 60)
-  return `${m}:${String(s % 60).padStart(2, '0')}`
-}
+import { mmss, parseStampMs } from './clock-core.ts'
+import { useNowMs } from './clock.ts'
 
-function ago(fromMs: number, nowMs: number): string {
-  const s = Math.max(0, Math.floor((nowMs - fromMs) / 1000))
-  const m = Math.floor(s / 60)
-  return `${m}:${String(s % 60).padStart(2, '0')}`
-}
-
-/** Re-render every second; returns current ms. */
-export function useNow(): number {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [])
-  return now
-}
+export { mmss }
+export { useMeetingMs, useNowMs } from './clock.ts'
 
 /** "updated 0:12 ago" — the D15 anti-"is it frozen?" affordance, bottom-right
- * of every panel. `stamp` is ms since epoch, or an ISO string, or null. */
+ * of every panel. `stamp` is ms on the clock's axis, or an ISO string, or null.
+ *
+ * Reads the clock rather than wall time, so a paused demo freezes this number
+ * in the same frame as every other counter on screen. */
 export function UpdatedAgo({ stamp }: { stamp: number | string | null }) {
-  const now = useNow()
-  if (stamp == null) return <div className="panel-foot" />
-  const ms = typeof stamp === 'string' ? Date.parse(stamp) : stamp
-  if (Number.isNaN(ms)) return <div className="panel-foot" />
-  return <div className="panel-foot">updated {ago(ms, now)} ago</div>
+  const now = useNowMs()
+  const ms = parseStampMs(stamp)
+  if (ms === null) return <div className="panel-foot" />
+  return <div className="panel-foot">updated {mmss(Math.floor((now - ms) / 1000))} ago</div>
 }
 
 /** Latest ISO updated_at/created_at across a list of entities, as ms. */
@@ -40,10 +29,8 @@ export function latestStamp(
 ): number | null {
   let max = -Infinity
   for (const it of items) {
-    const iso = it.updated_at ?? it.created_at
-    if (!iso) continue
-    const ms = Date.parse(iso)
-    if (!Number.isNaN(ms) && ms > max) max = ms
+    const ms = parseStampMs(it.updated_at ?? it.created_at ?? null)
+    if (ms !== null && ms > max) max = ms
   }
   return max === -Infinity ? fallback : max
 }
